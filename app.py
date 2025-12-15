@@ -12,7 +12,7 @@ JST = datetime.timezone(datetime.timedelta(hours=9))
 
 # Streamlit の初期設定
 st.set_page_config(
-    page_title="オーガナイザー確認"
+    page_title="SRオーガナイザー確認"
 )
 
 # --- 定数設定 ---
@@ -773,7 +773,7 @@ if 'input_room_id' not in st.session_state:
 
 # 💖 オーガナイザー確認 タイトル表示
 st.markdown(
-    "<h1 style='font-size:25px; text-align:left; color:#1f2937;'>💖 オーガナイザー確認</h1>",
+    "<h1 style='font-size:25px; text-align:left; color:#1f2937;'>💖 SRオーガナイザー確認</h1>",
     unsafe_allow_html=True
 )
 # st.markdown("##### 🔎 ルームIDの入力")
