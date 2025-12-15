@@ -1,11 +1,10 @@
 import streamlit as st
 import requests
 import pandas as pd
+import datetime
+import pytz
 
-# ----------------------------------------------------------------------
-# 基本設定
-# ----------------------------------------------------------------------
-st.set_page_config(page_title="オーガナイザー確認", layout="centered")
+JST = pytz.timezone("Asia/Tokyo")
 
 # ----------------------------------------------------------------------
 # API
@@ -20,7 +19,7 @@ def get_room_profile(room_id):
         return None
 
 
-def get_event_room_list(event_id):
+def get_event_room_list_data(event_id):
     if not event_id:
         return []
 
@@ -44,66 +43,78 @@ def get_event_room_list(event_id):
 
 
 # ----------------------------------------------------------------------
-# 条件① profile.event.event_id
+# 既存ロジック（変更なし）
 # ----------------------------------------------------------------------
-def organizer_from_profile_event(profile, room_id):
-    event = profile.get("event")
-    if not isinstance(event, dict):
+def get_event_id_from_event_liver_list(room_id):
+    try:
+        df = pd.read_csv(
+            "https://mksoul-pro.com/showroom/file/event_liver_list.csv",
+            header=None,
+            names=["room_id", "event_id"],
+            dtype=str
+        )
+        row = df[df["room_id"] == str(room_id)]
+        if not row.empty:
+            return row.iloc[0]["event_id"]
+        return None
+    except Exception:
         return None
 
-    event_id = event.get("event_id")
-    if not event_id:
-        return None
 
-    rooms = get_event_room_list(event_id)
-    for r in rooms:
-        if str(r.get("room_id")) == str(room_id):
-            return r.get("organizer_id")
+def get_room_event_meta(profile_event_id, room_id):
+    checked_event_ids = []
 
-    return None
+    if profile_event_id:
+        checked_event_ids.append(profile_event_id)
+
+    fallback_event_id = get_event_id_from_event_liver_list(room_id)
+    if fallback_event_id:
+        checked_event_ids.append(fallback_event_id)
+
+    for event_id in checked_event_ids:
+        rooms = get_event_room_list_data(event_id)
+        for r in rooms:
+            if str(r.get("room_id")) == str(room_id):
+                created_at = r.get("created_at")
+                organizer_id = r.get("organizer_id")
+
+                created_str = "-"
+                if created_at:
+                    created_str = datetime.datetime.fromtimestamp(
+                        created_at, JST
+                    ).strftime("%Y/%m/%d %H:%M:%S")
+
+                return created_str, organizer_id
+
+    return "-", "-"
 
 
-# ----------------------------------------------------------------------
-# 条件② MKsoul room_list.csv
-# ----------------------------------------------------------------------
 def is_mksoul_room(room_id):
     try:
-        df = pd.read_csv("https://mksoul-pro.com/showroom/file/room_list.csv")
-        return str(room_id) in df.iloc[:, 0].astype(str).values
+        df = pd.read_csv(
+            "https://mksoul-pro.com/showroom/file/room_list.csv",
+            dtype=str
+        )
+        room_ids = set(df.iloc[1:, 0].astype(str).str.strip())
+        return str(room_id) in room_ids
     except Exception:
         return False
 
 
-# ----------------------------------------------------------------------
-# 条件③ event_liver_list.csv
-# ----------------------------------------------------------------------
-def organizer_from_event_liver_list(room_id):
-    try:
-        df = pd.read_csv(
-            "https://mksoul-pro.com/showroom/file/event_liver_list.csv",
-            header=None
-        )
-        row = df[df.iloc[:, 0].astype(str) == str(room_id)]
-        if row.empty:
-            return None
+def resolve_organizer_name(organizer_id, official_status, room_id):
+    # フリー
+    if official_status != "公式":
+        return "フリー"
 
-        event_id = row.iloc[0, 1]
-        rooms = get_event_room_list(event_id)
-        for r in rooms:
-            if str(r.get("room_id")) == str(room_id):
-                return r.get("organizer_id")
+    # MKsoul
+    if is_mksoul_room(room_id):
+        return "MKsoul"
 
-        return None
-    except Exception:
-        return None
+    # organizer_id 未取得
+    if organizer_id in (None, "-", 0):
+        return "-"
 
-
-# ----------------------------------------------------------------------
-# organizer_id → organizer_name
-# ----------------------------------------------------------------------
-def resolve_organizer_name(organizer_id):
-    if organizer_id is None or organizer_id == 0:
-        return None
+    organizer_id_str = str(int(organizer_id))
 
     try:
         df = pd.read_csv(
@@ -121,18 +132,22 @@ def resolve_organizer_name(organizer_id):
         df["organizer_id"] = df["organizer_id"].astype(str).str.strip()
         df["organizer_name"] = df["organizer_name"].astype(str).str.strip()
 
-        row = df[df["organizer_id"] == str(organizer_id)]
+        row = df[df["organizer_id"] == organizer_id_str]
         if not row.empty:
             return row.iloc[0]["organizer_name"]
 
-        return None
+        # ★ ここだけ変更
+        return "-"
+
     except Exception:
-        return None
+        return "-"
 
 
 # ----------------------------------------------------------------------
 # UI
 # ----------------------------------------------------------------------
+st.set_page_config(page_title="オーガナイザー確認", layout="centered")
+
 st.markdown(
     """
     <style>
@@ -154,31 +169,20 @@ st.markdown(
 st.markdown("<div class='wrap'>", unsafe_allow_html=True)
 st.markdown("## 🎤 オーガナイザー確認")
 
-room_id = st.text_input(
-    "ルームID",
-    placeholder="例：507948",
-    label_visibility="collapsed"
-)
+room_id = st.text_input("ルームID", placeholder="例：507948", label_visibility="collapsed")
 
 if room_id.isdigit():
     profile = get_room_profile(room_id)
 
     if profile:
         room_name = profile.get("room_name", "このルーム")
-        is_official = profile.get("is_official", False)
+        official_status = "公式" if profile.get("is_official") else "フリー"
+        profile_event_id = profile.get("event", {}).get("event_id")
 
-        organizer_id = organizer_from_profile_event(profile, room_id)
+        _, organizer_id = get_room_event_meta(profile_event_id, room_id)
+        organizer_name = resolve_organizer_name(organizer_id, official_status, room_id)
 
-        if organizer_id is None and is_mksoul_room(room_id):
-            organizer_name = "MKsoul"
-            organizer_id = -1
-        else:
-            if organizer_id is None:
-                organizer_id = organizer_from_event_liver_list(room_id)
-            organizer_name = resolve_organizer_name(organizer_id)
-
-        # ---------------- 表示制御 ----------------
-        if not is_official:
+        if organizer_name == "フリー":
             st.markdown(
                 f"""
                 <div class="box">
@@ -188,40 +192,28 @@ if room_id.isdigit():
                 """,
                 unsafe_allow_html=True
             )
+        elif organizer_name == "-":
+            st.markdown(
+                f"""
+                <div class="box">
+                <strong>{room_name}</strong>のオーガナイザーですが、<br>
+                すみません、<br>
+                わかりませんでした･･･
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
         else:
-            if organizer_id == 0:
-                st.markdown(
-                    f"""
-                    <div class="box">
-                    <strong>{room_name}</strong>は、<br>
-                    フリーライバーです。
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-            elif organizer_name:
-                st.markdown(
-                    f"""
-                    <div class="box">
-                    <strong>{room_name}</strong>のオーガナイザーは、<br>
-                    <strong>{organizer_name}</strong><br>
-                    かと思います。
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-            else:
-                st.markdown(
-                    f"""
-                    <div class="box">
-                    <strong>{room_name}</strong>のオーガナイザーですが、<br>
-                    すみません、<br>
-                    わかりませんでした･･･
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
+            st.markdown(
+                f"""
+                <div class="box">
+                <strong>{room_name}</strong>のオーガナイザーは、<br>
+                <strong>{organizer_name}</strong><br>
+                かと思います。
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
     else:
         st.error("ルーム情報を取得できませんでした。")
 
