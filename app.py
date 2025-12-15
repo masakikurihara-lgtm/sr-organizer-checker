@@ -426,14 +426,11 @@ def get_event_participants_info(event_id, target_room_id, limit=10):
 # --- イベント情報取得関数群ここまで ---
 
 
-def display_room_status(profile_data, input_room_id):
+def display_room_status(profile_data, input_room_id, display_container):
     """取得したルームプロフィールデータとイベントデータを表示する"""
-
-    # ★ 取得時刻表示（JST）
-    # st.caption(
-    #      f"（取得時刻: {datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')} 現在）"
-    # )
     
+    # ここに表示ロジックを移動。display_container にコンテンツを書き込む
+
     # データを安全に取得
     room_name = _safe_get(profile_data, ["room_name"], "取得失敗")
     room_level = _safe_get(profile_data, ["room_level"], "-") # これはプロフィールのルームレベル
@@ -454,8 +451,11 @@ def display_room_status(profile_data, input_room_id):
     
     
     # --- 💡 カスタムCSSの定義（既存と新規の分離） ---
+    # CSSはページ全体に適用されるため、display_containerの外でst.markdownで一度実行しても良いが、
+    # ここでは確実にコンテナに表示するために、MarkdownでHTML内に含めて実行する。
     custom_styles = """
     <style>
+    /* ... (CSS定義は省略せずに元のコードからすべて保持) ... */
     /* 全体のフォント統一と余白調整 */
     h3 { 
         margin-top: 20px; 
@@ -674,37 +674,8 @@ def display_room_status(profile_data, input_room_id):
     
     </style>
     """
-    st.markdown(custom_styles, unsafe_allow_html=True) # カスタムCSSの適用を維持
-
-    # ヘルパー関数: カスタムスタイルを適用したメトリックを表示（未使用だが残す）
-    def custom_metric(label, value):
-        st.markdown(
-            f'<div class="custom-metric-container">'
-            f'<span class="metric-label">{label}</span>'
-            f'<div class="metric-value">{value}</div>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-
-
-    # --- 1. 🎤 ルーム名/ID (タイトル領域) ---
-    st.markdown(
-        f'<div class="room-title-container">'
-        # f'<span class="title-icon">🎤</span>'
-        f'<h1 style="font-size:20px; text-align:left; color:#1f2937;"><a href="{room_url}" target="_blank"><u>{room_name} ({input_room_id})</u></a> のオーガナイザー</h1>'
-        f'</div>', 
-        unsafe_allow_html=True
-    ) 
-    
-    st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
-    
-    # --- 2. 📊 ルーム基本情報（テーブル化の対象） ---
-
-
-    # st.markdown(
-    #      "<h1 style='font-size:22px; text-align:left; color:#1f2937; padding: 20px 0px 0px 0px;'>📊 ルーム基本情報-2</h1>",
-    #      unsafe_allow_html=True
-    # )
+    display_container.markdown(custom_styles, unsafe_allow_html=True) # カスタムCSSの適用を維持
+    # ---------------------------
 
     now = datetime.datetime.now()
     ym_list = [
@@ -732,6 +703,10 @@ def display_room_status(profile_data, input_room_id):
     ]
 
     html2 = f"""
+    <div class="room-title-container">
+    <h1 style="font-size:20px; text-align:left; color:#1f2937;"><a href="{room_url}" target="_blank"><u>{room_name} ({input_room_id})</u></a> のオーガナイザー</h1>
+    </div>
+    <div style='margin-top: 16px;'></div>
     <div class="basic-info-table-wrapper">
     <table class="basic-info-table">
     <thead>
@@ -744,12 +719,7 @@ def display_room_status(profile_data, input_room_id):
     </div>
     """
 
-    st.markdown(html2, unsafe_allow_html=True)
-
-    # st.caption(
-    #      f"""※取得できないデータなどはハイフン表示となる場合があります。 
-    # ※ライバルルームなどで、より詳細な情報や分析データ、見解等が欲しい場合はご相談ください。"""
-    # )
+    display_container.markdown(html2, unsafe_allow_html=True)
 
 
 # --- メインロジック (認証なしで実行されるように変更) ---
@@ -758,6 +728,9 @@ if 'show_status' not in st.session_state:
     st.session_state.show_status = False
 if 'input_room_id' not in st.session_state:
     st.session_state.input_room_id = ""
+if 'result_container_placeholder' not in st.session_state:
+    # 結果表示用のプレースホルダをセッションステートで保持し、再実行時に利用できるようにする
+    st.session_state.result_container_placeholder = None
 
 
 # 💖 オーガナイザー確認 タイトル表示
@@ -775,6 +748,7 @@ input_room_id_current = st.text_input(
     value=st.session_state.input_room_id
 ).strip()
     
+# 入力値が変わった場合、結果をリセット
 if input_room_id_current != st.session_state.input_room_id:
     st.session_state.input_room_id = input_room_id_current
     st.session_state.show_status = False
@@ -782,23 +756,37 @@ if input_room_id_current != st.session_state.input_room_id:
 # 実行ボタン
 if st.button("確認する"):
     if st.session_state.input_room_id and st.session_state.input_room_id.isdigit():
-        # 💡 修正点: 処理中フラグを立てて、下部の表示ロジックに移行
-        st.session_state.show_status = True 
+        st.session_state.show_status = True
     elif st.session_state.input_room_id:
         st.error("ルームIDは数字で入力してください。")
     else:
         st.warning("ルームIDを入力してください。")
-        
-# st.divider()
+
+# 結果表示用のプレースホルダを定義または取得
+if st.session_state.result_container_placeholder is None:
+    # ページが初回ロードされたとき
+    st.session_state.result_container_placeholder = st.empty()
+# 再実行時にも同じコンテナを参照
+result_container = st.session_state.result_container_placeholder
     
-# 情報の取得と表示
+# 情報の取得と表示 (ボタンが押されたときのみ実行)
 if st.session_state.show_status and st.session_state.input_room_id:
-    # 💡 修正点: データ取得処理を st.spinner() で囲む
-    with st.spinner(f"ルームID {st.session_state.input_room_id} の情報を確認中..."): # 文言を「確認中...」に変更
+    
+    # 💡 修正点: プレースホルダ内でスピナーを開始
+    with result_container.spinner(f"ルームID {st.session_state.input_room_id} の情報を確認中..."):
+        
+        # 時間のかかるデータ取得を実行
         room_profile = get_room_profile(st.session_state.input_room_id)
         
-    if room_profile:
-        # display_room_status 関数を呼び出し
-        display_room_status(room_profile, st.session_state.input_room_id)
-    else:
-        st.error(f"ルームID {st.session_state.input_room_id} の情報を取得できませんでした。IDを確認してください。")
+        # スピナーを消去し、結果を表示
+        result_container.empty() # スピナーをクリア
+        
+        if room_profile:
+            # display_room_status 関数を呼び出し、結果コンテナに描画させる
+            display_room_status(room_profile, st.session_state.input_room_id, result_container)
+        else:
+            # エラーメッセージを結果コンテナに描画
+            result_container.error(f"ルームID {st.session_state.input_room_id} の情報を取得できませんでした。IDを確認してください。")
+
+    # 処理が完了したらステータスをリセット
+    st.session_state.show_status = False
