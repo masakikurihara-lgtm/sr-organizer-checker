@@ -648,11 +648,11 @@ def display_room_status(profile_data, input_room_id):
         text-align: center !important; 
         padding: 6px 10px; 
         line-height: 1.4;
-        font-size: 25px;
+        font-size: 22px;
         border-bottom: 1px solid #f0f0f0;
         white-space: nowrap;
         width: 12.5%; /* 8項目で均等に分割 */
-        font-weight: 1000; /* 値を目立たせる */
+        font-weight: 777; /* 値を目立たせる */
     }
 
     /* ホバーエフェクトの維持 */
@@ -691,7 +691,7 @@ def display_room_status(profile_data, input_room_id):
     st.markdown(
         f'<div class="room-title-container">'
         # f'<span class="title-icon">🎤</span>'
-        f'<h1 style="font-size:20px; text-align:left; color:#1f2937;"><a href="{room_url}" target="_blank"><u>{room_name} ({input_room_id})</u></a> のオーガナイザー</h1>'
+        f'<h1 style="font-size:20px; text-align:left; color:#1f2937; line-height: 1.4;"><a href="{room_url}" target="_blank"><u>{room_name} ({input_room_id})</u></a> のオーガナイザー</h1>'
         f'</div>', 
         unsafe_allow_html=True
     ) 
