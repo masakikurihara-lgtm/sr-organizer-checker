@@ -810,7 +810,7 @@ st.markdown(
     "<h1 style='font-size:28px; text-align:left; color:#1f2937;'>💖 オーガナイザー確認</h1>",
     unsafe_allow_html=True
 )
-st.markdown("##### 🔎 ルームIDの入力")
+# st.markdown("##### 🔎 ルームIDの入力")
 
 # ルームID入力フィールド
 input_room_id_current = st.text_input(
