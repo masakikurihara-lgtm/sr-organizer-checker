@@ -433,6 +433,10 @@ def display_room_status(profile_data, input_room_id):
     # st.caption(
     #     f"（取得時刻: {datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')} 現在）"
     # )
+
+    st.caption(
+         f"AIが情報取得の上判断しています（※誤る可能性もあります）"
+     )
     
     # データを安全に取得
     room_name = _safe_get(profile_data, ["room_name"], "取得失敗")
