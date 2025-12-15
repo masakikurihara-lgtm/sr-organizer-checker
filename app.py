@@ -439,8 +439,8 @@ def display_room_status(profile_data, input_room_id):
     # )
 
     st.caption(
-        f"""※AIが情報取得の上、総合的に判断しています  
-    ※稀に誤る可能性もあります"""
+        f"""※ AIが情報収集の上総合的に判断しています  
+    ※ 稀に誤る可能性もあります"""
     )
     
     # データを安全に取得
