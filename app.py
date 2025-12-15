@@ -860,7 +860,7 @@ if st.session_state.authenticated:
         st.session_state.input_room_id = input_room_id_current
         st.session_state.show_status = False
         
-    if st.button("AIくん頑張って！"):
+    if st.button("A実行"):
         if st.session_state.input_room_id and st.session_state.input_room_id.isdigit():
             st.session_state.show_status = True
         elif st.session_state.input_room_id:
