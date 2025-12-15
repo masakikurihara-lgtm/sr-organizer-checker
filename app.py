@@ -701,13 +701,11 @@ def display_room_status(profile_data, input_room_id):
     # --- 1. 🎤 ルーム名/ID (タイトル領域) ---
     st.markdown(
         f'<div class="room-title-container">'
-        f'<h1 style="font-size:18px; text-align:left; color:#1f2937; line-height: 1.6; word-break: break-word;">'
-        f'<a href="{room_url}" target="_blank"><u>{room_name} ({input_room_id})</u></a>' # ルーム名とID
-        f'<br>のオーガナイザー' # ここで改行タグを挿入
-        f'</h1>'
+        # f'<span class="title-icon">🎤</span>'
+        f'<h1 style="font-size:18px; text-align:left; color:#1f2937; line-height: 1.6;"><a href="{room_url}" target="_blank"><u>{room_name} ({input_room_id})</u></a> のオーガナイザー</h1>'
         f'</div>', 
         unsafe_allow_html=True
-    )
+    ) 
     
     # st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
     
