@@ -810,7 +810,7 @@ if 'input_room_id' not in st.session_state:
 if not st.session_state.authenticated:
     # st.title("💖 SHOWROOM ルームステータス可視化ツール")
     st.markdown(
-        "<h1 style='font-size:28px; text-align:left; color:#1f2937;'>💖 SHOWROOM ルームステータス確認ツール</h1>",
+        "<h1 style='font-size:28px; text-align:left; color:#1f2937;'>💖 オーガナイザー確認</h1>",
         unsafe_allow_html=True
     )
     st.markdown("##### 🔑 認証コードを入力してください")
@@ -850,7 +850,7 @@ if st.session_state.authenticated:
     st.markdown("##### 🔎 ルームIDの入力")
 
     input_room_id_current = st.text_input(
-        "表示したいルームIDを入力してください:",
+        "確認したいルームIDを入力してください:",
         placeholder="例: 123456",
         key="room_id_input_main",
         value=st.session_state.input_room_id
@@ -860,7 +860,7 @@ if st.session_state.authenticated:
         st.session_state.input_room_id = input_room_id_current
         st.session_state.show_status = False
         
-    if st.button("ルームステータスを表示"):
+    if st.button("AIくん頑張って！"):
         if st.session_state.input_room_id and st.session_state.input_room_id.isdigit():
             st.session_state.show_status = True
         elif st.session_state.input_room_id:
