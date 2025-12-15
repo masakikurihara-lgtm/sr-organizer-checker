@@ -754,10 +754,10 @@ def display_room_status(profile_data, input_room_id):
         except (TypeError, ValueError):
             return False
 
-    st.markdown(
-        "<h1 style='font-size:22px; text-align:left; color:#1f2937; padding: 5px 0px 0px 0px;'>📊 ルーム基本情報</h1>",
-        unsafe_allow_html=True
-    )
+    # st.markdown(
+    #     "<h1 style='font-size:22px; text-align:left; color:#1f2937; padding: 5px 0px 0px 0px;'>📊 ルーム基本情報</h1>",
+    #     unsafe_allow_html=True
+    # )
     
     # データを整形
     def format_value(value):
@@ -854,20 +854,10 @@ def display_room_status(profile_data, input_room_id):
     organizer_name = resolve_organizer_name(organizer_id, official_status, input_room_id)
 
     headers2 = [
-        "今月のファン数/ファンパワー",
-        "先月のファン数/ファンパワー",
-        "先々月のファン数/ファンパワー",
-        "アバター数",
-        "ルーム作成日時",
         "オーガナイザー"
     ]
 
     values2 = [
-        fan_display[0],
-        fan_display[1],
-        fan_display[2],
-        avatar_count,
-        created_at,
         organizer_name
     ]
 
