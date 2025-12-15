@@ -426,7 +426,7 @@ def display_room_status(profile_data, input_room_id):
 
     # ★ 取得時刻表示（JST）
     # st.caption(
-    #     f"（取得時刻: {datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')} 現在）"
+    #    f"（取得時刻: {datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')} 現在）"
     # )
     
     # データを安全に取得
@@ -748,8 +748,8 @@ def display_room_status(profile_data, input_room_id):
 
 
     # st.markdown(
-    #     "<h1 style='font-size:22px; text-align:left; color:#1f2937; padding: 20px 0px 0px 0px;'>📊 ルーム基本情報-2</h1>",
-    #     unsafe_allow_html=True
+    #      "<h1 style='font-size:22px; text-align:left; color:#1f2937; padding: 20px 0px 0px 0px;'>📊 ルーム基本情報-2</h1>",
+    #      unsafe_allow_html=True
     # )
 
     now = datetime.datetime.now()
@@ -792,63 +792,55 @@ def display_room_status(profile_data, input_room_id):
     st.markdown(html2, unsafe_allow_html=True)
 
     # st.caption(
-    #     f"""※取得できないデータなどはハイフン表示となる場合があります。  
+    #      f"""※取得できないデータなどはハイフン表示となる場合があります。  
     # ※ライバルルームなどで、より詳細な情報や分析データ、見解等が欲しい場合はご相談ください。"""
     # )
 
 
-# --- メインロジック ---
-# st.session_stateの初期化 (認証機能のために必須)
-if 'authenticated' not in st.session_state:
-    st.session_state.authenticated = False
+# --- メインロジック (認証なしで実行されるように変更) ---
+# st.session_stateの初期化 (認証機能に関連するものは削除)
 if 'show_status' not in st.session_state:
     st.session_state.show_status = False
 if 'input_room_id' not in st.session_state:
     st.session_state.input_room_id = ""
 
 
-if not st.session_state.authenticated:
-    # st.title("💖 SHOWROOM ルームステータス可視化ツール")
-    st.markdown(
-        "<h1 style='font-size:28px; text-align:left; color:#1f2937;'>💖 オーガナイザー確認</h1>",
-        unsafe_allow_html=True
-    )
+# 💖 オーガナイザー確認 タイトル表示
+st.markdown(
+    "<h1 style='font-size:28px; text-align:left; color:#1f2937;'>💖 オーガナイザー確認</h1>",
+    unsafe_allow_html=True
+)
+st.markdown("##### 🔎 ルームIDの入力")
 
-
-if st.session_state.authenticated:
-    # st.title("💖 オーガナイザー確認")
-    st.markdown(
-        "<h1 style='font-size:28px; text-align:left; color:#1f2937;'>💖 オーガナイザー確認</h1>",
-        unsafe_allow_html=True
-    )
-    st.markdown("##### 🔎 ルームIDの入力")
-
-    input_room_id_current = st.text_input(
-        "確認したいルームIDを入力してください:",
-        placeholder="例: 123456",
-        key="room_id_input_main",
-        value=st.session_state.input_room_id
-    ).strip()
+# ルームID入力フィールド
+input_room_id_current = st.text_input(
+    "確認したいルームIDを入力してください:",
+    placeholder="例: 123456",
+    key="room_id_input_main",
+    value=st.session_state.input_room_id
+).strip()
     
-    if input_room_id_current != st.session_state.input_room_id:
-        st.session_state.input_room_id = input_room_id_current
-        st.session_state.show_status = False
-        
-    if st.button("実行"):
-        if st.session_state.input_room_id and st.session_state.input_room_id.isdigit():
-            st.session_state.show_status = True
-        elif st.session_state.input_room_id:
-            st.error("ルームIDは数字で入力してください。")
-        else:
-            st.warning("ルームIDを入力してください。")
+if input_room_id_current != st.session_state.input_room_id:
+    st.session_state.input_room_id = input_room_id_current
+    st.session_state.show_status = False
+    
+# 実行ボタン
+if st.button("実行"):
+    if st.session_state.input_room_id and st.session_state.input_room_id.isdigit():
+        st.session_state.show_status = True
+    elif st.session_state.input_room_id:
+        st.error("ルームIDは数字で入力してください。")
+    else:
+        st.warning("ルームIDを入力してください。")
             
-    # st.divider()
+# st.divider()
     
-    if st.session_state.show_status and st.session_state.input_room_id:
-        with st.spinner(f"ルームID {st.session_state.input_room_id} の情報を取得中..."):
-            room_profile = get_room_profile(st.session_state.input_room_id)
-        if room_profile:
-            # display_room_status 関数を呼び出し
-            display_room_status(room_profile, st.session_state.input_room_id)
-        else:
-            st.error(f"ルームID {st.session_state.input_room_id} の情報を取得できませんでした。IDを確認してください。")
+# 情報の取得と表示
+if st.session_state.show_status and st.session_state.input_room_id:
+    with st.spinner(f"ルームID {st.session_state.input_room_id} の情報を取得中..."):
+        room_profile = get_room_profile(st.session_state.input_room_id)
+    if room_profile:
+        # display_room_status 関数を呼び出し
+        display_room_status(room_profile, st.session_state.input_room_id)
+    else:
+        st.error(f"ルームID {st.session_state.input_room_id} の情報を取得できませんでした。IDを確認してください。")
