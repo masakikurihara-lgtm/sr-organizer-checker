@@ -666,58 +666,7 @@ def display_room_status(profile_data, input_room_id):
         background-color: #fff9c4 !important;
         color: #795548;
     }
-    
-    /* ******************************************* */
-    /* 🔥 新規追加: イベント参加状況テーブル専用CSS */
-    /* ******************************************* */
-    
-    /* イベント参加状況テーブルのラッパー */
-    .event-info-table-wrapper {
-        width: 100%;
-        /*max-width: 800px;*/ /* 基本情報テーブルより少し狭くても可 */
-        margin: 0 auto;
-        overflow-x: auto;
-    }
-    
-    /* イベント参加状況テーブル本体 */
-    .event-info-table {
-        border-collapse: collapse;
-        width: 100%; 
-        margin-top: 10px;
-        /*table-layout: fixed;*/ /* レイアウトを固定 */
-    }
 
-    /* ヘッダーセル (<th>) - デザインを統一 */
-    .event-info-table th {
-        text-align: center !important; 
-        background-color: #e3f2fd; /* 少し薄い青 */
-        color: #0d47a1; 
-        font-weight: bold;
-        padding: 8px 10px; 
-        border-top: 1px solid #90caf9; 
-        border-bottom: 1px solid #90caf9; 
-        white-space: nowrap;
-        width: 25%; /* 4項目で均等に分割 */
-    }
-    
-    /* データセル (<td>) - デザインを統一 */
-    .event-info-table td {
-        text-align: center !important; 
-        padding: 6px 10px; 
-        line-height: 1.4;
-        border-bottom: 1px solid #f0f0f0;
-        white-space: nowrap;
-        width: 25%; /* 4項目で均等に分割 */
-        font-weight: 600; 
-        font-size: 18px; /* 値を強調 */
-    }
-    
-    /* ホバーエフェクトの維持 */
-    .event-info-table tbody tr:hover {
-        background-color: #f7f9fd; 
-    }
-
-    
     </style>
     """
     st.markdown(custom_styles, unsafe_allow_html=True) # カスタムCSSの適用を維持
