@@ -813,33 +813,7 @@ if not st.session_state.authenticated:
         "<h1 style='font-size:28px; text-align:left; color:#1f2937;'>💖 オーガナイザー確認</h1>",
         unsafe_allow_html=True
     )
-    st.markdown("##### 🔑 認証コードを入力してください")
-    input_auth_code = st.text_input(
-        "認証コードを入力してください:",
-        placeholder="認証コード",
-        type="password",
-        key="room_id_input_auth"
-    )
-    if st.button("認証する"):
-        if input_auth_code:
-            with st.spinner("認証中..."):
-                try:
-                    response = requests.get(ROOM_LIST_URL, timeout=5)
-                    response.raise_for_status()
-                    # 認証コードリストの取得と検証ロジックを維持
-                    room_df = pd.read_csv(io.StringIO(response.text), header=None, dtype=str)
-                    valid_codes = set(str(x).strip() for x in room_df.iloc[:, 0].dropna())
-                    if input_auth_code.strip() in valid_codes:
-                        st.session_state.authenticated = True
-                        st.success("✅ 認証に成功しました。ツールを利用できます。")
-                        st.rerun()
-                    else:
-                        st.error("❌ 認証コードが無効です。正しい認証コードを入力してください。")
-                except Exception as e:
-                    st.error(f"認証リストを取得できませんでした: {e}")
-        else:
-            st.warning("認証コードを入力してください。")
-    st.stop()
+
 
 if st.session_state.authenticated:
     # st.title("💖 オーガナイザー確認")
