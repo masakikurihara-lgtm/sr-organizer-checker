@@ -20,6 +20,9 @@ def get_room_profile(room_id):
 
 
 def get_event_room_list_data(event_id):
+    if not event_id:
+        return []
+
     rooms = []
     page = 1
     while True:
@@ -40,8 +43,24 @@ def get_event_room_list_data(event_id):
 
 
 # ----------------------------------------------------------------------
-# ★ 既存関数（変更なし）
+# 既存ロジック（変更なし）
 # ----------------------------------------------------------------------
+def get_event_id_from_event_liver_list(room_id):
+    try:
+        df = pd.read_csv(
+            "https://mksoul-pro.com/showroom/file/event_liver_list.csv",
+            header=None,
+            names=["room_id", "event_id"],
+            dtype=str
+        )
+        row = df[df["room_id"] == str(room_id)]
+        if not row.empty:
+            return row.iloc[0]["event_id"]
+        return None
+    except Exception:
+        return None
+
+
 def get_room_event_meta(profile_event_id, room_id):
     checked_event_ids = []
 
@@ -70,13 +89,28 @@ def get_room_event_meta(profile_event_id, room_id):
     return "-", "-"
 
 
+def is_mksoul_room(room_id):
+    try:
+        df = pd.read_csv(
+            "https://mksoul-pro.com/showroom/file/room_list.csv",
+            dtype=str
+        )
+        room_ids = set(df.iloc[1:, 0].astype(str).str.strip())
+        return str(room_id) in room_ids
+    except Exception:
+        return False
+
+
 def resolve_organizer_name(organizer_id, official_status, room_id):
+    # フリー
     if official_status != "公式":
         return "フリー"
 
+    # MKsoul
     if is_mksoul_room(room_id):
         return "MKsoul"
 
+    # organizer_id 未取得
     if organizer_id in (None, "-", 0):
         return "-"
 
@@ -102,38 +136,11 @@ def resolve_organizer_name(organizer_id, official_status, room_id):
         if not row.empty:
             return row.iloc[0]["organizer_name"]
 
-        return organizer_id_str
+        # ★ ここだけ変更
+        return "-"
 
     except Exception:
-        return organizer_id_str
-
-
-def is_mksoul_room(room_id):
-    try:
-        df = pd.read_csv(
-            "https://mksoul-pro.com/showroom/file/room_list.csv",
-            dtype=str
-        )
-        room_ids = set(df.iloc[1:, 0].astype(str).str.strip())
-        return str(room_id) in room_ids
-    except Exception:
-        return False
-
-
-def get_event_id_from_event_liver_list(room_id):
-    try:
-        df = pd.read_csv(
-            "https://mksoul-pro.com/showroom/file/event_liver_list.csv",
-            header=None,
-            names=["room_id", "event_id"],
-            dtype=str
-        )
-        row = df[df["room_id"] == str(room_id)]
-        if not row.empty:
-            return row.iloc[0]["event_id"]
-        return None
-    except Exception:
-        return None
+        return "-"
 
 
 # ----------------------------------------------------------------------
@@ -162,11 +169,7 @@ st.markdown(
 st.markdown("<div class='wrap'>", unsafe_allow_html=True)
 st.markdown("## 🎤 オーガナイザー確認")
 
-room_id = st.text_input(
-    "ルームID",
-    placeholder="例：507948",
-    label_visibility="collapsed"
-)
+room_id = st.text_input("ルームID", placeholder="例：507948", label_visibility="collapsed")
 
 if room_id.isdigit():
     profile = get_room_profile(room_id)
@@ -177,13 +180,8 @@ if room_id.isdigit():
         profile_event_id = profile.get("event", {}).get("event_id")
 
         _, organizer_id = get_room_event_meta(profile_event_id, room_id)
-        organizer_name = resolve_organizer_name(
-            organizer_id,
-            official_status,
-            room_id
-        )
+        organizer_name = resolve_organizer_name(organizer_id, official_status, room_id)
 
-        # ---------------- 表示制御（★唯一の変更点） ----------------
         if organizer_name == "フリー":
             st.markdown(
                 f"""
@@ -194,8 +192,7 @@ if room_id.isdigit():
                 """,
                 unsafe_allow_html=True
             )
-
-        elif organizer_name in ("-", None) or organizer_name.isdigit():
+        elif organizer_name == "-":
             st.markdown(
                 f"""
                 <div class="box">
@@ -206,7 +203,6 @@ if room_id.isdigit():
                 """,
                 unsafe_allow_html=True
             )
-
         else:
             st.markdown(
                 f"""
@@ -218,7 +214,6 @@ if room_id.isdigit():
                 """,
                 unsafe_allow_html=True
             )
-
     else:
         st.error("ルーム情報を取得できませんでした。")
 
