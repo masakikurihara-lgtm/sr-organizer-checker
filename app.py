@@ -737,7 +737,7 @@ def display_room_status(profile_data, input_room_id):
     st.markdown(
         f'<div class="room-title-container">'
         # f'<span class="title-icon">🎤</span>'
-        f'<h1 style="font-size:20px; text-align:left; color:#1f2937;"><a href="{room_url}" target="_blank"><u>{room_name} ({input_room_id})</u></a> のルームステータス</h1>'
+        f'<h1 style="font-size:20px; text-align:left; color:#1f2937;"><a href="{room_url}" target="_blank"><u>{room_name} ({input_room_id})</u></a> のオーガナイザー</h1>'
         f'</div>', 
         unsafe_allow_html=True
     ) 
@@ -860,7 +860,7 @@ if st.session_state.authenticated:
         st.session_state.input_room_id = input_room_id_current
         st.session_state.show_status = False
         
-    if st.button("A実行"):
+    if st.button("実行"):
         if st.session_state.input_room_id and st.session_state.input_room_id.isdigit():
             st.session_state.show_status = True
         elif st.session_state.input_room_id:
