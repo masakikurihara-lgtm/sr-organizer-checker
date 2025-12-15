@@ -11,8 +11,10 @@ JST = pytz.timezone("Asia/Tokyo")
 # ----------------------------------------------------------------------
 def get_room_profile(room_id):
     try:
-        url = f"https://www.showroom-live.com/api/room/profile?room_id={room_id}"
-        r = requests.get(url, timeout=10)
+        r = requests.get(
+            f"https://www.showroom-live.com/api/room/profile?room_id={room_id}",
+            timeout=10
+        )
         r.raise_for_status()
         return r.json()
     except Exception:
@@ -26,8 +28,10 @@ def get_event_room_list_data(event_id):
     rooms = []
     page = 1
     while True:
-        url = f"https://www.showroom-live.com/api/event/room_list?event_id={event_id}&p={page}"
-        r = requests.get(url, timeout=10)
+        r = requests.get(
+            f"https://www.showroom-live.com/api/event/room_list?event_id={event_id}&p={page}",
+            timeout=10
+        )
         if r.status_code != 200:
             break
 
@@ -43,7 +47,7 @@ def get_event_room_list_data(event_id):
 
 
 # ----------------------------------------------------------------------
-# 既存ロジック（変更なし）
+# 既存関数（変更なし）
 # ----------------------------------------------------------------------
 def get_event_id_from_event_liver_list(room_id):
     try:
@@ -102,15 +106,12 @@ def is_mksoul_room(room_id):
 
 
 def resolve_organizer_name(organizer_id, official_status, room_id):
-    # フリー
     if official_status != "公式":
         return "フリー"
 
-    # MKsoul
     if is_mksoul_room(room_id):
         return "MKsoul"
 
-    # organizer_id 未取得
     if organizer_id in (None, "-", 0):
         return "-"
 
@@ -136,9 +137,7 @@ def resolve_organizer_name(organizer_id, official_status, room_id):
         if not row.empty:
             return row.iloc[0]["organizer_name"]
 
-        # ★ ここだけ変更
         return "-"
-
     except Exception:
         return "-"
 
@@ -177,10 +176,15 @@ if room_id.isdigit():
     if profile:
         room_name = profile.get("room_name", "このルーム")
         official_status = "公式" if profile.get("is_official") else "フリー"
-        profile_event_id = profile.get("event", {}).get("event_id")
+
+        # ★ ここが致命的に抜けていた
+        profile_event = profile.get("event") or {}
+        profile_event_id = profile_event.get("event_id")
 
         _, organizer_id = get_room_event_meta(profile_event_id, room_id)
-        organizer_name = resolve_organizer_name(organizer_id, official_status, room_id)
+        organizer_name = resolve_organizer_name(
+            organizer_id, official_status, room_id
+        )
 
         if organizer_name == "フリー":
             st.markdown(
