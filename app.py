@@ -7,6 +7,7 @@ from dateutil import parser
 import numpy as np
 import re
 import json
+import time # 処理遅延のデバッグ用にインポート
 
 JST = datetime.timezone(datetime.timedelta(hours=9))
 
@@ -341,21 +342,16 @@ def count_valid_avatars(profile_data):
 def get_room_event_meta(profile_event_id, room_id):
     """
     ルーム作成日時・オーガナイザーID取得
-    条件① profile.event.event_id
-    条件③ event_liver_list.csv
     """
     checked_event_ids = []
 
-    # --- 条件① ---
     if profile_event_id:
         checked_event_ids.append(profile_event_id)
 
-    # --- 条件③ ---
     fallback_event_id = get_event_id_from_event_liver_list(room_id)
     if fallback_event_id:
         checked_event_ids.append(fallback_event_id)
 
-    # --- イベントID候補を順に試す ---
     for event_id in checked_event_ids:
         rooms = get_event_room_list_data(event_id)
         for r in rooms:
@@ -371,26 +367,21 @@ def get_room_event_meta(profile_event_id, room_id):
 
                 return created_str, organizer_id
 
-    # --- 条件④ ---
     return "-", "-"
 
 
 def resolve_organizer_name(organizer_id, official_status, room_id):
     """
     オーガナイザーIDに基づいてオーガナイザー名を解決する。
-    オーガナイザーリストに見つからない場合、「わかりませんでした<(_ _*)>」を返す。
     """
     NOT_FOUND_MSG = "わかりませんでした<(_ _*)>"
 
-    # --- フリー ---
     if official_status != "公式":
         return "フリー"
 
-    # --- 条件②：MKsoul ---
     if is_mksoul_room(room_id):
         return "MKsoul"
 
-    # --- 条件①：既存オーガナイザー ---
     if organizer_id in (None, "-", 0):
         return NOT_FOUND_MSG
 
@@ -451,7 +442,7 @@ def get_event_id_from_event_liver_list(room_id):
 
 
 
-# --- イベント情報取得関数群（変更なし） ---
+# --- イベント情報取得関数群（省略） ---
 
 def get_total_entries(event_id):
     params = {"event_id": event_id}
@@ -516,7 +507,7 @@ def get_event_room_list_data(event_id):
                 page = page + 1
 
         except Exception as e:
-            print(f"イベントリスト取得エラー: Event ID {event_id}, Page {page}, Error: {e}")
+            # print(f"イベントリスト取得エラー: Event ID {event_id}, Page {page}, Error: {e}")
             break
             
     return all_rooms
@@ -653,7 +644,6 @@ if 'show_status' not in st.session_state:
     st.session_state.show_status = False
 if 'input_room_id' not in st.session_state:
     st.session_state.input_room_id = ""
-# 💡 新しいセッションステート: データ取得結果を保持
 if 'room_profile_data' not in st.session_state:
     st.session_state.room_profile_data = None
 
@@ -676,30 +666,31 @@ input_room_id_current = st.text_input(
 if input_room_id_current != st.session_state.input_room_id:
     st.session_state.input_room_id = input_room_id_current
     st.session_state.show_status = False
-    st.session_state.room_profile_data = None # 結果もリセット
+    st.session_state.room_profile_data = None
     
-# 実行ボタンの前にスピナー表示用のプレースホルダを定義
-# 💡 修正: スピナー表示と結果表示用のコンテナを分離
+# 実行ボタンの前に状態表示用のプレースホルダを定義
 status_placeholder = st.empty()
 result_container = st.empty()
 
 # 実行ボタン
 if st.button("確認する"):
     if st.session_state.input_room_id and st.session_state.input_room_id.isdigit():
-        # ボタンが押されたらデータ取得を実行するフラグを立てる（次の再実行で処理される）
         st.session_state.show_status = True
-        st.session_state.room_profile_data = None # 新しい確認の前にクリア
+        st.session_state.room_profile_data = None
     elif st.session_state.input_room_id:
         result_container.error("ルームIDは数字で入力してください。")
     else:
         result_container.warning("ルームIDを入力してください。")
 
 
-# 💡 修正: データ取得ロジック (show_statusがTrueの場合)
+# 💡 修正: データ取得ロジック (`st.spinner`を`st.status`に置き換え)
 if st.session_state.show_status and st.session_state.input_room_id:
     
-    # 1. status_placeholderを使用してスピナーを表示
-    with status_placeholder.spinner(f"ルームID {st.session_state.input_room_id} の情報を確認中..."):
+    # 1. st.status を使用して進行状況を表示
+    # with st.status(...) は st.spinner(...) よりも安定性が高い
+    with st.status(f"ルームID **{st.session_state.input_room_id}** の情報を確認中...", expanded=True) as status_tracker:
+        
+        st.write("--- APIリクエストを開始 ---")
         
         # 2. 時間のかかるデータ取得を実行
         room_profile = get_room_profile(st.session_state.input_room_id)
@@ -707,11 +698,19 @@ if st.session_state.show_status and st.session_state.input_room_id:
         # 3. 結果をセッションステートに保存
         st.session_state.room_profile_data = room_profile
         
-    # 4. 処理が完了したらステータスをリセットし、スピナーをクリア
-    st.session_state.show_status = False
-    status_placeholder.empty() # スピナーを明示的にクリア
+        # 4. 進行状況を更新
+        if room_profile:
+            status_tracker.update(label=f"確認完了: ルームID **{st.session_state.input_room_id}** の情報が見つかりました。", state="complete", expanded=False)
+        else:
+            status_tracker.update(label=f"確認失敗: ルームID **{st.session_state.input_room_id}** の情報が見つかりませんでした。", state="error", expanded=False)
 
-    # Streamlitはここで再実行される
+
+    # 5. 処理が完了したらステータスをリセット (次の実行のため)
+    st.session_state.show_status = False
+    
+    # st.status は with ブロックを抜けるか update() が呼ばれるまで表示されるため、
+    # status_placeholder.empty() は不要です。
+
 
 # 💡 修正: 表示ロジック (データがセッションステートにある場合)
 if st.session_state.room_profile_data:
@@ -721,11 +720,8 @@ if st.session_state.room_profile_data:
         st.session_state.input_room_id, 
         result_container
     )
-elif st.session_state.input_room_id and st.session_state.room_profile_data is None and not st.session_state.show_status:
-    # データがNoneで、確認中でなければエラーを表示
-    # ただし、初回ロード時（input_room_idが入力されていてもボタンが押されていない状態）は表示しないようにする
+elif st.session_state.input_room_id and st.session_state.room_profile_data is None and 'room_id_input_main' in st.session_state:
+    # ボタンが押されたがデータが取得できなかった場合（エラー表示をより明確に）
+    # ただし、st.status がエラーを既に表示しているため、ここでは二重表示を避ける
+    # データ取得に失敗した場合、st.status が state="error" で閉じているはずです。
     pass
-    # result_container.error(f"ルームID {st.session_state.input_room_id} の情報を取得できませんでした。IDを確認してください。")
-
-# 補足: エラーメッセージの表示は、ボタン押下時の `else` ブロック、またはデータ取得失敗時に限定し、
-# ページロード時の誤った表示を避けるように調整済み。
