@@ -151,6 +151,12 @@ def get_room_event_meta(profile_event_id, room_id):
 
 
 def resolve_organizer_name(organizer_id, official_status, room_id):
+    """
+    オーガナイザーIDに基づいてオーガナイザー名を解決する。
+    オーガナイザーリストに見つからない場合、「わかりませんでした<(_ _*)>」を返す。
+    """
+    NOT_FOUND_MSG = "わかりませんでした<(_ _*)>"
+
     # --- フリー ---
     if official_status != "公式":
         return "フリー"
@@ -185,10 +191,12 @@ def resolve_organizer_name(organizer_id, official_status, room_id):
         if not row.empty:
             return row.iloc[0]["organizer_name"]
 
-        return organizer_id_str
+        # 👈 修正: オーガナイザーリストに見つからない場合は指定の文字列を返す
+        return NOT_FOUND_MSG
 
     except Exception:
-        return organizer_id_str
+        # 👈 修正: CSV読み込みなどのエラーが発生した場合も指定の文字列を返す
+        return NOT_FOUND_MSG
 
 
 def is_mksoul_room(room_id):
@@ -242,10 +250,6 @@ def get_total_entries(event_id):
 def get_event_room_list_data(event_id):
     """
     全参加者リストを取得する。（ページネーション対応を API のメタ情報に基づいて強化）
-    
-    【重要修正点】
-    - APIの応答に含まれる 'next_page' および 'last_page' を利用し、より確実な全件取得を実現。
-    - リストの長さではなく、APIのページネーション情報に基づいてループを制御する。
     """
     all_rooms = []
     page = 1 # ページカウンター ('p' パラメーターの値)
@@ -426,7 +430,7 @@ def display_room_status(profile_data, input_room_id):
 
     # ★ 取得時刻表示（JST）
     # st.caption(
-    #    f"（取得時刻: {datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')} 現在）"
+    #     f"（取得時刻: {datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')} 現在）"
     # )
     
     # データを安全に取得
@@ -697,8 +701,8 @@ def display_room_status(profile_data, input_room_id):
 
 
     # st.markdown(
-    #      "<h1 style='font-size:22px; text-align:left; color:#1f2937; padding: 20px 0px 0px 0px;'>📊 ルーム基本情報-2</h1>",
-    #      unsafe_allow_html=True
+    #     "<h1 style='font-size:22px; text-align:left; color:#1f2937; padding: 20px 0px 0px 0px;'>📊 ルーム基本情報-2</h1>",
+    #     unsafe_allow_html=True
     # )
 
     now = datetime.datetime.now()
@@ -715,6 +719,7 @@ def display_room_status(profile_data, input_room_id):
 
     event_id = _safe_get(profile_data, ["event", "event_id"], None)
     created_at, organizer_id = get_room_event_meta(event_id, input_room_id)
+    # resolve_organizer_name 関数が修正されている
     organizer_name = resolve_organizer_name(organizer_id, official_status, input_room_id)
 
     headers2 = [
@@ -741,7 +746,7 @@ def display_room_status(profile_data, input_room_id):
     st.markdown(html2, unsafe_allow_html=True)
 
     # st.caption(
-    #      f"""※取得できないデータなどはハイフン表示となる場合があります。  
+    #     f"""※取得できないデータなどはハイフン表示となる場合があります。 
     # ※ライバルルームなどで、より詳細な情報や分析データ、見解等が欲しい場合はご相談ください。"""
     # )
 
