@@ -825,7 +825,7 @@ if input_room_id_current != st.session_state.input_room_id:
     st.session_state.show_status = False
     
 # 実行ボタン
-if st.button("実行"):
+if st.button("確認する"):
     if st.session_state.input_room_id and st.session_state.input_room_id.isdigit():
         st.session_state.show_status = True
     elif st.session_state.input_room_id:
