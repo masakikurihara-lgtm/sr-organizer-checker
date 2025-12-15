@@ -67,50 +67,7 @@ def get_room_profile(room_id):
         return None
 
 
-def get_monthly_fan_info(room_id, ym):
-    url = "https://www.showroom-live.com/api/active_fan/users"
-    params = {
-        "room_id": room_id,
-        "ym": ym,
-        "offset": 0,
-        "limit": 1
-    }
-    try:
-        r = requests.get(url, params=params, timeout=10)
-        r.raise_for_status()
-        data = r.json()
-        return (
-            data.get("total_user_count", "-"),
-            data.get("fan_power", "-")
-        )
-    except Exception:
-        return "-", "-"
 
-
-def get_excluded_avatar_ids():
-    url = "https://mksoul-pro.com/tool/pr-liver-update-avatar/excluded_avatar_ids.txt"
-    try:
-        r = requests.get(url, timeout=10)
-        r.raise_for_status()
-        return set(line.strip() for line in r.text.splitlines() if line.strip().isdigit())
-    except Exception:
-        return set()
-
-
-def count_valid_avatars(profile_data):
-    avatar_list = _safe_get(profile_data, ["avatar", "list"], [])
-    if not isinstance(avatar_list, list):
-        return "-"
-
-    excluded_ids = get_excluded_avatar_ids()
-    count = 0
-
-    for url in avatar_list:
-        m = re.search(r'/avatar/(\d+)\.png', url)
-        if m and m.group(1) not in excluded_ids:
-            count += 1
-
-    return count
 
 
 def get_room_event_meta(profile_event_id, room_id):
