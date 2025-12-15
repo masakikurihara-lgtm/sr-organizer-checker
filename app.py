@@ -718,7 +718,8 @@ def display_room_status(profile_data, input_room_id, display_container):
     </table>
     </div>
     """
-
+    
+    # 修正: display_containerに直接markdownを書き込む
     display_container.markdown(html2, unsafe_allow_html=True)
 
 
@@ -772,17 +773,18 @@ result_container = st.session_state.result_container_placeholder
 # 情報の取得と表示 (ボタンが押されたときのみ実行)
 if st.session_state.show_status and st.session_state.input_room_id:
     
-    # 💡 修正点: プレースホルダ内でスピナーを開始
+    # 💡 修正点: スピナーのブロック内で、明示的な result_container.empty() の呼び出しを削除
+    # st.spinner() はブロックを抜けるときにコンテンツを自動でクリアするため。
     with result_container.spinner(f"ルームID {st.session_state.input_room_id} の情報を確認中..."):
         
         # 時間のかかるデータ取得を実行
         room_profile = get_room_profile(st.session_state.input_room_id)
         
-        # スピナーを消去し、結果を表示
-        result_container.empty() # スピナーをクリア
+        # result_container.empty() は削除
         
         if room_profile:
             # display_room_status 関数を呼び出し、結果コンテナに描画させる
+            # この呼び出しで result_container の内容がスピナーに上書きされる
             display_room_status(room_profile, st.session_state.input_room_id, result_container)
         else:
             # エラーメッセージを結果コンテナに描画
