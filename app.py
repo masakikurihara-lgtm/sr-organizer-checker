@@ -167,7 +167,8 @@ def resolve_organizer_name(organizer_id, official_status, room_id):
 
     # --- 条件①：既存オーガナイザー ---
     if organizer_id in (None, "-", 0):
-        return "-"
+        # 💡 修正点: ハイフンの場合も「わかりませんでした<(_ _*)>」を返す
+        return NOT_FOUND_MSG
 
     organizer_id_str = str(int(organizer_id))
 
