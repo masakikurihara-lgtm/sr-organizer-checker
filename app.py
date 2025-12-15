@@ -440,7 +440,8 @@ def display_room_status(profile_data, input_room_id):
 
     st.caption(
         f"""※ AIが情報収集の上総合的に判断しています  
-    ※ 稀に誤る可能性もあります"""
+    ※ 稀に誤る可能性があります  
+    ※ 処理に時間が掛かる場合があります"""
     )
     
     # データを安全に取得
