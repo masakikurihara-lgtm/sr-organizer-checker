@@ -16,7 +16,6 @@ st.set_page_config(
 )
 
 # --- カスタムCSSの定義と適用（アプリの起動時に一度だけ実行する） ---
-# st.set_page_config の直後、メイン処理の前に置くことで、描画エラーを減らす
 custom_styles = """
 <style>
 /* ... (CSS定義は省略せずに元のコードからすべて保持) ... */
@@ -264,7 +263,6 @@ def _safe_get(data, keys, default_value=None):
             temp = temp.get(key)
         else:
             return default_value
-    # 取得した値がNone、空の文字列、またはNaNの場合もデフォルト値を返す
     if temp is None or (isinstance(temp, str) and temp.strip() == "") or (isinstance(temp, float) and pd.isna(temp)):
         return default_value
     return temp
@@ -394,7 +392,6 @@ def resolve_organizer_name(organizer_id, official_status, room_id):
 
     # --- 条件①：既存オーガナイザー ---
     if organizer_id in (None, "-", 0):
-        # 💡 修正点: ハイフンの場合も「わかりませんでした<(_ _*)>」を返す
         return NOT_FOUND_MSG
 
     organizer_id_str = str(int(organizer_id))
@@ -419,11 +416,9 @@ def resolve_organizer_name(organizer_id, official_status, room_id):
         if not row.empty:
             return row.iloc[0]["organizer_name"]
 
-        # 👈 修正: オーガナイザーリストに見つからない場合は指定の文字列を返す
         return NOT_FOUND_MSG
 
     except Exception:
-        # 👈 修正: CSV読み込みなどのエラーが発生した場合も指定の文字列を返す
         return NOT_FOUND_MSG
 
 
@@ -459,10 +454,8 @@ def get_event_id_from_event_liver_list(room_id):
 # --- イベント情報取得関数群（変更なし） ---
 
 def get_total_entries(event_id):
-    """イベント参加者総数を取得する（これはページネーションの必要なし）"""
     params = {"event_id": event_id}
     try:
-        # 1ページ目を取得して total_entries を確認
         response = requests.get(API_EVENT_ROOM_LIST_URL, headers=HEADERS, params=params, timeout=10)
         if response.status_code == 404:
             return 0
@@ -476,25 +469,18 @@ def get_total_entries(event_id):
 
 
 def get_event_room_list_data(event_id):
-    """
-    全参加者リストを取得する。（ページネーション対応を API のメタ情報に基づいて強化）
-    """
     all_rooms = []
-    page = 1 # ページカウンター ('p' パラメーターの値)
-    count = 50 # 1ページあたりの取得件数（SHOWROOM APIの標準値）
-    max_pages = 50 # 無限ループ防止のため最大ページ数を設定 (50 * 50 = 2500ルームまで取得を試みる)
-    
-    # ページネーション制御用のフラグ
+    page = 1
+    count = 50
+    max_pages = 50
     has_next_page = True
     
     while page <= max_pages and has_next_page:
         params = {"event_id": event_id, "p": page, "count": count} 
         try:
-            # ページごとにAPIをリクエスト
             resp = requests.get(API_EVENT_ROOM_LIST_URL, headers=HEADERS, params=params, timeout=15)
             
             if resp.status_code == 404:
-                # 404エラーの場合はイベントIDが存在しないか終了している
                 break
             
             resp.raise_for_status()
@@ -502,82 +488,60 @@ def get_event_room_list_data(event_id):
             
             current_page_rooms = []
             
-            # APIレスポンスからリストデータを抽出
             if isinstance(data, dict):
-                # 複数のキー名からルームリストを取得
                 for k in ('list', 'room_list', 'event_entry_list', 'entries', 'data', 'event_list'):
                     if k in data and isinstance(data[k], list):
                         current_page_rooms = data[k]
                         break
                 
-                # --- ★ ページネーション制御の主要な修正点 ★ ---
                 next_page = data.get('next_page')
-                current_page = data.get('current_page')
                 last_page = data.get('last_page')
                 
-                # next_page が None または last_page を超えている場合は、次のページがないと判断
                 if next_page is None or (last_page is not None and next_page > last_page):
                     has_next_page = False
                 
             elif isinstance(data, list):
-                # リスト形式で返ってきた場合（非推奨だが念のため対応）
                 current_page_rooms = data
-                # リスト形式の場合は、リストの長さで次のページがあるかを判断（APIの仕様次第で不確実）
                 if len(current_page_rooms) < count:
                     has_next_page = False
             else:
-                # データ形式が不正
                 break
 
             if not current_page_rooms:
-                # ルームリストが空であれば、これ以上データがないと判断してループ終了
                 break
 
             all_rooms.extend(current_page_rooms)
             
-            # next_page 情報が取れていればそれを利用、取れていなければページカウンターをインクリメント
             if has_next_page:
-                page = page + 1 # 次のページへ
+                page = page + 1
 
         except Exception as e:
-            # ネットワークエラーなどで中断
             print(f"イベントリスト取得エラー: Event ID {event_id}, Page {page}, Error: {e}")
             break
             
     return all_rooms
 
 def get_event_participants_info(event_id, target_room_id, limit=10):
-    """
-    イベント参加ルーム情報・状況APIから必要な情報を抽出する。
-    ターゲットルームの順位、ポイント、レベルを確実に取得する。（検索ロジックを最終強化）
-    """
-    # ターゲットルームIDを文字列に統一（APIのJSON内のID型と合わせるため）
     target_room_id_str = str(target_room_id).strip()
     
     if not event_id:
         return {"total_entries": "-", "rank": "-", "point": "-", "level": "-", "top_participants": []}
 
-    # 全参加者リストを取得（全ページ分を取得するロジックを信頼する）
     room_list_data = get_event_room_list_data(event_id)
     total_entries = get_total_entries(event_id)
     current_room_data = None
     
-    # --- 🎯 ターゲットルームの情報を、取得できたリスト全体から確実に探す（修正ロジック） ---
-    # 上位10件以降で見つからない問題を解決するため、全リストを探索
     for room in room_list_data:
-        # room_id が存在し、文字列化したものがターゲットIDと一致するか確認
         room_id_in_list = room.get("room_id")
         if room_id_in_list is not None and str(room_id_in_list).strip() == target_room_id_str:
             current_room_data = room
-            break # 見つけたらすぐにループを抜ける
+            break
             
-    # --- 🎯 ターゲットルームの参加状況を確定 ---
     rank = None
     point = None
     level = None
     
     if current_room_data:
-        # _safe_get を使用して安全に値を取得
         rank = _safe_get(current_room_data, ["rank"], default_value=None)
         
         point = _safe_get(current_room_data, ["point"], default_value=None)
@@ -590,36 +554,26 @@ def get_event_participants_info(event_id, target_room_id, limit=10):
         if level is None:
             level = _safe_get(current_room_data, ["event_entry", "level"], default_value=None)
     
-    # 取得結果の None を表示用のハイフンに変換 (0や有効な値はそのまま残る)
     rank = "-" if rank is None else rank
     point = "-" if point is None else point
     level = "-" if level is None else level
-    # ------------------------------------------------------------------------------------
 
-    # --- 上位10ルームのリストを作成し、エンリッチメント処理に進む ---
     top_participants = room_list_data
     if top_participants:
-        # point/score は文字列またはNoneの可能性があるため、intにキャストしてソート
         top_participants.sort(key=lambda x: int(str(x.get('point', x.get('score', 0)) or 0)), reverse=True)
     
-    # 上位10件に制限する（表示用）
     top_participants_for_display = top_participants[:limit]
 
-
-    # ✅ 上位10ルームのプロフィール情報を取得し、データをエンリッチ（統合）
     enriched_participants = []
     for participant in top_participants_for_display:
         room_id = participant.get('room_id')
         
-        # 取得必須のキーを初期化（Noneで初期化）
         for key in ['room_level_profile', 'show_rank_subdivided', 'follower_num', 'live_continuous_days', 'is_official_api']: 
             participant[key] = None
             
         if room_id:
-            # プロフィールAPIへの呼び出し
             profile = get_room_profile(room_id)
             if profile:
-                # プロフィールAPIから取得した「ルームレベル」を 'room_level_profile' として格納
                 participant['room_level_profile'] = _safe_get(profile, ["room_level"], None)
                 participant['show_rank_subdivided'] = _safe_get(profile, ["show_rank_subdivided"], None)
                 participant['follower_num'] = _safe_get(profile, ["follower_num"], None)
@@ -629,26 +583,23 @@ def get_event_participants_info(event_id, target_room_id, limit=10):
                 if not participant.get('room_name'):
                     participant['room_name'] = _safe_get(profile, ["room_name"], f"Room {room_id}")
         
-        # イベントの「レベル」を取得 ('event_entry.quest_level' またはその他のキーから)
         participant['quest_level'] = _safe_get(participant, ["event_entry", "quest_level"], None)
         if participant['quest_level'] is None:
             participant['quest_level'] = _safe_get(participant, ["entry_level"], None)
         if participant['quest_level'] is None:
             participant['quest_level'] = _safe_get(participant, ["event_entry", "level"], None)
 
-        # 最終的に quest_level がセットされていない場合、ここでキーを追加（DataFrame化でエラーが出ないように）
         if 'quest_level' not in participant:
             participant['quest_level'] = None
 
         enriched_participants.append(participant)
 
-    # 応答に必要な情報を返す
     return {
         "total_entries": total_entries if isinstance(total_entries, int) and total_entries > 0 else "-",
         "rank": rank,
         "point": point,
-        "level": level, # ターゲットルームのレベル
-        "top_participants": enriched_participants, # エンリッチされたリストを返す
+        "level": level,
+        "top_participants": enriched_participants,
     }
 # --- イベント情報取得関数群ここまで ---
 
@@ -656,30 +607,15 @@ def get_event_participants_info(event_id, target_room_id, limit=10):
 def display_room_status(profile_data, input_room_id, display_container):
     """取得したルームプロフィールデータとイベントデータを表示する"""
     
-    # データを安全に取得
     room_name = _safe_get(profile_data, ["room_name"], "取得失敗")
     is_official = _safe_get(profile_data, ["is_official"], None)
 
-    # 加工・整形
     official_status = "公式" if is_official is True else "フリー" if is_official is False else "-"
     
     room_url = f"https://www.showroom-live.com/room/profile?room_id={input_room_id}"
     
-    now = datetime.datetime.now()
-    ym_list = [
-        now.strftime("%Y%m"),
-        (now.replace(day=1) - datetime.timedelta(days=1)).strftime("%Y%m"),
-        (now.replace(day=1) - datetime.timedelta(days=32)).strftime("%Y%m")
-    ]
-
-    fan_infos = [get_monthly_fan_info(input_room_id, ym) for ym in ym_list]
-    fan_display = [f"{f} / {p}" if f != "-" else "-" for f, p in fan_infos]
-
-    # avatar_count = count_valid_avatars(profile_data) # 不要なため削除（もし必要なら戻す）
-
     event_id = _safe_get(profile_data, ["event", "event_id"], None)
     created_at, organizer_id = get_room_event_meta(event_id, input_room_id)
-    # resolve_organizer_name 関数が修正されている
     organizer_name = resolve_organizer_name(organizer_id, official_status, input_room_id)
 
     headers2 = [
@@ -707,7 +643,7 @@ def display_room_status(profile_data, input_room_id, display_container):
     </div>
     """
     
-    # 修正: display_containerに直接markdownを書き込む
+    # display_containerに直接markdownを書き込む
     display_container.markdown(html2, unsafe_allow_html=True)
 
 
@@ -717,6 +653,9 @@ if 'show_status' not in st.session_state:
     st.session_state.show_status = False
 if 'input_room_id' not in st.session_state:
     st.session_state.input_room_id = ""
+# 💡 新しいセッションステート: データ取得結果を保持
+if 'room_profile_data' not in st.session_state:
+    st.session_state.room_profile_data = None
 
 
 # 💖 オーガナイザー確認 タイトル表示
@@ -733,40 +672,60 @@ input_room_id_current = st.text_input(
     value=st.session_state.input_room_id
 ).strip()
     
-# 入力値が変わった場合、結果をリセット
+# 入力値が変わった場合、結果とステータスをリセット
 if input_room_id_current != st.session_state.input_room_id:
     st.session_state.input_room_id = input_room_id_current
     st.session_state.show_status = False
+    st.session_state.room_profile_data = None # 結果もリセット
     
+# 実行ボタンの前にスピナー表示用のプレースホルダを定義
+# 💡 修正: スピナー表示と結果表示用のコンテナを分離
+status_placeholder = st.empty()
+result_container = st.empty()
+
 # 実行ボタン
 if st.button("確認する"):
     if st.session_state.input_room_id and st.session_state.input_room_id.isdigit():
+        # ボタンが押されたらデータ取得を実行するフラグを立てる（次の再実行で処理される）
         st.session_state.show_status = True
+        st.session_state.room_profile_data = None # 新しい確認の前にクリア
     elif st.session_state.input_room_id:
-        st.error("ルームIDは数字で入力してください。")
+        result_container.error("ルームIDは数字で入力してください。")
     else:
-        st.warning("ルームIDを入力してください。")
+        result_container.warning("ルームIDを入力してください。")
 
-# 💡 修正点: result_containerを毎回定義（st.empty() をセッションステートで管理しない）
-result_container = st.empty()
-    
-# 情報の取得と表示 (ボタンが押されたときのみ実行)
+
+# 💡 修正: データ取得ロジック (show_statusがTrueの場合)
 if st.session_state.show_status and st.session_state.input_room_id:
     
-    # 💡 修正点: スピナーのブロック内でデータ取得と表示を一括で行う
-    with result_container.spinner(f"ルームID {st.session_state.input_room_id} の情報を確認中..."):
+    # 1. status_placeholderを使用してスピナーを表示
+    with status_placeholder.spinner(f"ルームID {st.session_state.input_room_id} の情報を確認中..."):
         
-        # 時間のかかるデータ取得を実行
+        # 2. 時間のかかるデータ取得を実行
         room_profile = get_room_profile(st.session_state.input_room_id)
         
-        # スピナーがブロックを抜けるときに自動でクリアされる
+        # 3. 結果をセッションステートに保存
+        st.session_state.room_profile_data = room_profile
         
-        if room_profile:
-            # display_room_status 関数を呼び出し、結果コンテナに描画させる
-            display_room_status(room_profile, st.session_state.input_room_id, result_container)
-        else:
-            # エラーメッセージを結果コンテナに描画
-            result_container.error(f"ルームID {st.session_state.input_room_id} の情報を取得できませんでした。IDを確認してください。")
-
-    # 処理が完了したらステータスをリセット
+    # 4. 処理が完了したらステータスをリセットし、スピナーをクリア
     st.session_state.show_status = False
+    status_placeholder.empty() # スピナーを明示的にクリア
+
+    # Streamlitはここで再実行される
+
+# 💡 修正: 表示ロジック (データがセッションステートにある場合)
+if st.session_state.room_profile_data:
+    # 取得結果を表示
+    display_room_status(
+        st.session_state.room_profile_data, 
+        st.session_state.input_room_id, 
+        result_container
+    )
+elif st.session_state.input_room_id and st.session_state.room_profile_data is None and not st.session_state.show_status:
+    # データがNoneで、確認中でなければエラーを表示
+    # ただし、初回ロード時（input_room_idが入力されていてもボタンが押されていない状態）は表示しないようにする
+    pass
+    # result_container.error(f"ルームID {st.session_state.input_room_id} の情報を取得できませんでした。IDを確認してください。")
+
+# 補足: エラーメッセージの表示は、ボタン押下時の `else` ブロック、またはデータ取得失敗時に限定し、
+# ページロード時の誤った表示を避けるように調整済み。
