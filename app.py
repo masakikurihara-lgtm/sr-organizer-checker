@@ -12,7 +12,7 @@ JST = datetime.timezone(datetime.timedelta(hours=9))
 
 # Streamlit の初期設定
 st.set_page_config(
-    page_title="SHOWROOM ルームステータス確認ツール"
+    page_title="オーガナイザー確認"
 )
 
 # --- 定数設定 ---
@@ -842,9 +842,9 @@ if not st.session_state.authenticated:
     st.stop()
 
 if st.session_state.authenticated:
-    # st.title("💖 SHOWROOM ルームステータス確認ツール")
+    # st.title("💖 オーガナイザー確認")
     st.markdown(
-        "<h1 style='font-size:28px; text-align:left; color:#1f2937;'>💖 SHOWROOM ルームステータス確認ツール</h1>",
+        "<h1 style='font-size:28px; text-align:left; color:#1f2937;'>💖 オーガナイザー確認</h1>",
         unsafe_allow_html=True
     )
     st.markdown("##### 🔎 ルームIDの入力")
