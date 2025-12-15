@@ -36,6 +36,7 @@ def get_event_room_list(event_id):
 
         rooms.extend(room_list)
         page += 1
+
     return rooms
 
 
@@ -59,9 +60,7 @@ def organizer_from_profile_event(event_id, room_id):
 # ----------------------------------------------------------------------
 def is_mksoul_room(room_id):
     try:
-        df = pd.read_csv(
-            "https://mksoul-pro.com/showroom/file/room_list.csv"
-        )
+        df = pd.read_csv("https://mksoul-pro.com/showroom/file/room_list.csv")
         return str(room_id) in df.iloc[:, 0].astype(str).values
     except Exception:
         return False
@@ -158,11 +157,23 @@ if room_id.isdigit():
 
     if profile:
         room_name = profile.get("room_name", "このルーム")
-        official_status = profile.get("official_status")
+        is_official = profile.get("is_official", False)
         event_id = profile.get("event", {}).get("event_id")
 
-        # フリー
-        if official_status != "公式":
+        # --- オーガナイザー取得（①→②→③） ---
+        organizer_id = (
+            organizer_from_profile_event(event_id, room_id)
+            or ("MKsoul" if is_mksoul_room(room_id) else None)
+            or organizer_from_event_liver_list(room_id)
+        )
+
+        organizer_name = (
+            "MKsoul" if organizer_id == "MKsoul"
+            else resolve_organizer_name(organizer_id)
+        )
+
+        # --- 表示制御 ---
+        if not is_official:
             st.markdown(
                 f"""
                 <div class="box">
@@ -173,49 +184,28 @@ if room_id.isdigit():
                 unsafe_allow_html=True
             )
         else:
-            organizer_id = (
-                organizer_from_profile_event(event_id, room_id)
-                or ("MKsoul" if is_mksoul_room(room_id) else None)
-                or organizer_from_event_liver_list(room_id)
-            )
-
-            # MKsoulは確定表示
-            if organizer_id == "MKsoul":
+            if organizer_name:
                 st.markdown(
                     f"""
                     <div class="box">
                     <strong>{room_name}</strong>のオーガナイザーは、<br>
-                    <strong>MKsoul</strong><br>
+                    <strong>{organizer_name}</strong><br>
                     かと思います。
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
             else:
-                organizer_name = resolve_organizer_name(organizer_id)
-
-                if organizer_name:
-                    st.markdown(
-                        f"""
-                        <div class="box">
-                        <strong>{room_name}</strong>のオーガナイザーは、<br>
-                        <strong>{organizer_name}</strong><br>
-                        かと思います。
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-                else:
-                    st.markdown(
-                        f"""
-                        <div class="box">
-                        <strong>{room_name}</strong>のオーガナイザーですが、<br>
-                        すみません、<br>
-                        わかりませんでした･･･
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
+                st.markdown(
+                    f"""
+                    <div class="box">
+                    <strong>{room_name}</strong>のオーガナイザーですが、<br>
+                    すみません、<br>
+                    わかりませんでした･･･
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
     else:
         st.error("ルーム情報を取得できませんでした。")
