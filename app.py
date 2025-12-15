@@ -696,7 +696,7 @@ def display_room_status(profile_data, input_room_id):
         unsafe_allow_html=True
     ) 
     
-    st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
+    # st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
     
     # --- 2. 📊 ルーム基本情報（テーブル化の対象） ---
 
