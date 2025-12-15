@@ -21,6 +21,9 @@ def get_room_profile(room_id):
 
 
 def get_event_room_list(event_id):
+    if not event_id:
+        return []
+
     rooms = []
     page = 1
     while True:
@@ -43,13 +46,19 @@ def get_event_room_list(event_id):
 # ----------------------------------------------------------------------
 # 条件① profile.event.event_id
 # ----------------------------------------------------------------------
-def organizer_from_profile_event(event_id, room_id):
+def organizer_from_profile_event(profile, room_id):
+    event = profile.get("event")
+    if not isinstance(event, dict):
+        return None
+
+    event_id = event.get("event_id")
     if not event_id:
         return None
 
     rooms = get_event_room_list(event_id)
     for r in rooms:
         if str(r.get("room_id")) == str(room_id):
+            # organizer_id は 0 も含めて返す
             return r.get("organizer_id")
 
     return None
@@ -94,7 +103,7 @@ def organizer_from_event_liver_list(room_id):
 # organizer_id → organizer_name
 # ----------------------------------------------------------------------
 def resolve_organizer_name(organizer_id):
-    if organizer_id in (None, "-", 0):
+    if organizer_id is None:
         return None
 
     try:
@@ -113,7 +122,7 @@ def resolve_organizer_name(organizer_id):
         df["organizer_id"] = df["organizer_id"].astype(str).str.strip()
         df["organizer_name"] = df["organizer_name"].astype(str).str.strip()
 
-        row = df[df["organizer_id"] == str(int(organizer_id))]
+        row = df[df["organizer_id"] == str(organizer_id)]
         if not row.empty:
             return row.iloc[0]["organizer_name"]
 
@@ -123,7 +132,7 @@ def resolve_organizer_name(organizer_id):
 
 
 # ----------------------------------------------------------------------
-# UI（スマホ縦型）
+# UI
 # ----------------------------------------------------------------------
 st.markdown(
     """
@@ -158,19 +167,16 @@ if room_id.isdigit():
     if profile:
         room_name = profile.get("room_name", "このルーム")
         is_official = profile.get("is_official", False)
-        event_id = profile.get("event", {}).get("event_id")
 
-        # --- オーガナイザー取得（①→②→③） ---
-        organizer_id = (
-            organizer_from_profile_event(event_id, room_id)
-            or ("MKsoul" if is_mksoul_room(room_id) else None)
-            or organizer_from_event_liver_list(room_id)
-        )
+        # --- 取得順①→②→③ ---
+        organizer_id = organizer_from_profile_event(profile, room_id)
 
-        organizer_name = (
-            "MKsoul" if organizer_id == "MKsoul"
-            else resolve_organizer_name(organizer_id)
-        )
+        if organizer_id is None and is_mksoul_room(room_id):
+            organizer_name = "MKsoul"
+        else:
+            if organizer_id is None:
+                organizer_id = organizer_from_event_liver_list(room_id)
+            organizer_name = resolve_organizer_name(organizer_id)
 
         # --- 表示制御 ---
         if not is_official:
