@@ -431,7 +431,7 @@ def display_room_status(profile_data, input_room_id):
 
     # ★ 取得時刻表示（JST）
     # st.caption(
-    #     f"（取得時刻: {datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')} 現在）"
+    #      f"（取得時刻: {datetime.datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S')} 現在）"
     # )
     
     # データを安全に取得
@@ -702,8 +702,8 @@ def display_room_status(profile_data, input_room_id):
 
 
     # st.markdown(
-    #     "<h1 style='font-size:22px; text-align:left; color:#1f2937; padding: 20px 0px 0px 0px;'>📊 ルーム基本情報-2</h1>",
-    #     unsafe_allow_html=True
+    #      "<h1 style='font-size:22px; text-align:left; color:#1f2937; padding: 20px 0px 0px 0px;'>📊 ルーム基本情報-2</h1>",
+    #      unsafe_allow_html=True
     # )
 
     now = datetime.datetime.now()
@@ -747,7 +747,7 @@ def display_room_status(profile_data, input_room_id):
     st.markdown(html2, unsafe_allow_html=True)
 
     # st.caption(
-    #     f"""※取得できないデータなどはハイフン表示となる場合があります。 
+    #      f"""※取得できないデータなどはハイフン表示となる場合があります。 
     # ※ライバルルームなどで、より詳細な情報や分析データ、見解等が欲しい場合はご相談ください。"""
     # )
 
@@ -782,18 +782,21 @@ if input_room_id_current != st.session_state.input_room_id:
 # 実行ボタン
 if st.button("確認する"):
     if st.session_state.input_room_id and st.session_state.input_room_id.isdigit():
-        st.session_state.show_status = True
+        # 💡 修正点: 処理中フラグを立てて、下部の表示ロジックに移行
+        st.session_state.show_status = True 
     elif st.session_state.input_room_id:
         st.error("ルームIDは数字で入力してください。")
     else:
         st.warning("ルームIDを入力してください。")
-            
+        
 # st.divider()
     
 # 情報の取得と表示
 if st.session_state.show_status and st.session_state.input_room_id:
-    with st.spinner(f"ルームID {st.session_state.input_room_id} の情報を取得中..."):
+    # 💡 修正点: データ取得処理を st.spinner() で囲む
+    with st.spinner(f"ルームID {st.session_state.input_room_id} の情報を確認中..."): # 文言を「確認中...」に変更
         room_profile = get_room_profile(st.session_state.input_room_id)
+        
     if room_profile:
         # display_room_status 関数を呼び出し
         display_room_status(room_profile, st.session_state.input_room_id)
