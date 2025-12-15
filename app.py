@@ -12,8 +12,7 @@ JST = datetime.timezone(datetime.timedelta(hours=9))
 
 # Streamlit の初期設定
 st.set_page_config(
-    page_title="SHOWROOM ルームステータス確認ツール",
-    layout="wide"
+    page_title="SHOWROOM ルームステータス確認ツール"
 )
 
 # --- 定数設定 ---
