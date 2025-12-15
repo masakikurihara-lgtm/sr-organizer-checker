@@ -8,7 +8,7 @@ import pandas as pd
 st.set_page_config(page_title="オーガナイザー確認", layout="centered")
 
 # ----------------------------------------------------------------------
-# APIユーティリティ
+# API
 # ----------------------------------------------------------------------
 def get_room_profile(room_id):
     try:
@@ -58,7 +58,6 @@ def organizer_from_profile_event(profile, room_id):
     rooms = get_event_room_list(event_id)
     for r in rooms:
         if str(r.get("room_id")) == str(room_id):
-            # organizer_id は 0 も含めて返す
             return r.get("organizer_id")
 
     return None
@@ -76,7 +75,7 @@ def is_mksoul_room(room_id):
 
 
 # ----------------------------------------------------------------------
-# 条件③ event_liver_list.csv → event_room_list
+# 条件③ event_liver_list.csv
 # ----------------------------------------------------------------------
 def organizer_from_event_liver_list(room_id):
     try:
@@ -103,7 +102,7 @@ def organizer_from_event_liver_list(room_id):
 # organizer_id → organizer_name
 # ----------------------------------------------------------------------
 def resolve_organizer_name(organizer_id):
-    if organizer_id is None:
+    if organizer_id is None or organizer_id == 0:
         return None
 
     try:
@@ -168,17 +167,17 @@ if room_id.isdigit():
         room_name = profile.get("room_name", "このルーム")
         is_official = profile.get("is_official", False)
 
-        # --- 取得順①→②→③ ---
         organizer_id = organizer_from_profile_event(profile, room_id)
 
         if organizer_id is None and is_mksoul_room(room_id):
             organizer_name = "MKsoul"
+            organizer_id = -1
         else:
             if organizer_id is None:
                 organizer_id = organizer_from_event_liver_list(room_id)
             organizer_name = resolve_organizer_name(organizer_id)
 
-        # --- 表示制御 ---
+        # ---------------- 表示制御 ----------------
         if not is_official:
             st.markdown(
                 f"""
@@ -190,7 +189,17 @@ if room_id.isdigit():
                 unsafe_allow_html=True
             )
         else:
-            if organizer_name:
+            if organizer_id == 0:
+                st.markdown(
+                    f"""
+                    <div class="box">
+                    <strong>{room_name}</strong>は、<br>
+                    フリーライバーです。
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            elif organizer_name:
                 st.markdown(
                     f"""
                     <div class="box">
