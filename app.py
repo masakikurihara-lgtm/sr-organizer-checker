@@ -15,6 +15,233 @@ st.set_page_config(
     page_title="オーガナイザー確認"
 )
 
+# --- カスタムCSSの定義と適用（アプリの起動時に一度だけ実行する） ---
+# st.set_page_config の直後、メイン処理の前に置くことで、描画エラーを減らす
+custom_styles = """
+<style>
+/* ... (CSS定義は省略せずに元のコードからすべて保持) ... */
+/* 全体のフォント統一と余白調整 */
+h3 { 
+    margin-top: 20px; 
+    padding-top: 10px; 
+    border-bottom: none; 
+}
+
+h4.midashi-1 { 
+    padding: 0.5rem 0px 0.5rem;
+}
+
+/* タイトル領域のスタイル */
+.room-title-container {
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    background-color: #f0f2f6; 
+    border: 1px solid #e6e6e6;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+}
+.room-title-container h1 {
+    margin: 0;
+    padding: 0;
+    line-height: 1.2;
+    font-size: 28px; 
+}
+.room-title-container .title-icon {
+    font-size: 30px; 
+    margin-right: 15px;
+    color: #ff4b4b; 
+}
+.room-title-container a {
+    text-decoration: none; 
+    color: #1c1c1c; 
+}
+
+/* 🚀 ルーム基本情報のカスタムメトリック用スタイル (元のコードから維持) */
+.custom-metric-container {
+    margin-bottom: 15px; 
+    padding: 5px 0;
+}
+.metric-label {
+    font-size: 14px; 
+    color: #666; 
+    font-weight: 600;
+    margin-bottom: 5px;
+    display: block; 
+}
+.metric-value {
+    font-size: 24px !important; 
+    font-weight: bold;
+    line-height: 1.1;
+    color: #1c1c1c;
+}
+
+/* st.metric の値を強制的に揃える (イベント情報セクション用) (元のコードから維持) */
+.stMetric label {
+    font-size: 14px; 
+    color: #666; 
+    font-weight: 600;
+    margin-bottom: 5px;
+    display: block; 
+}
+.stMetric > div > div:nth-child(2) > div {
+    font-size: 24px !important; 
+    font-weight: bold;
+}
+
+/* HTMLテーブルのスタイル (既存のイベント上位10ルーム用) */
+.stHtml .dataframe {
+    border-collapse: collapse;
+    margin-top: 10px; 
+    width: 100%; 
+    /*max-width: 1000px;*/
+    min-width: 800px; 
+}
+
+/* 中央寄せラッパー (テーブル全体を中央に配置) (既存のイベント上位10ルーム用) */
+.center-table-wrapper {
+    /*display: flex;*/ /* 既存のコメントアウトを維持（一切変更しない） */
+    justify-content: center; 
+    width: 100%;
+    overflow-x: auto;
+}
+
+/*
+🔥🔥 イベントテーブル用CSS (既存コード): すべての th と td の text-align をセンターに設定し、優先度を最大化
+*/
+
+/* ヘッダーセル (<th>) を強制的に中央寄せ */
+.stMarkdown table.dataframe th {
+    text-align: center !important; 
+    background-color: #e8eaf6; 
+    color: #1a237e; 
+    font-weight: bold;
+    padding: 8px 10px; 
+    /*font-size: 14px;*/
+    border-top: 1px solid #c5cae9; 
+    border-bottom: 1px solid #c5cae9; 
+    white-space: nowrap;
+}
+
+/* データセル (<td>) を強制的に中央寄せ */
+.stMarkdown table.dataframe td {
+    text-align: center !important; 
+    padding: 6px 10px; 
+    /*font-size: 13px;*/
+    line-height: 1.4;
+    border-bottom: 1px solid #f0f0f0;
+    white-space: nowrap; 
+}
+
+/* ルーム名列のデータセル (<td>) のみ、テキストを左寄せに戻す（自然な表示のため） */
+/* 1列目 (ルーム名) のセルをターゲット */
+.stMarkdown table.dataframe td:nth-child(1) {
+    text-align: left !important; /* ルーム名のみ左寄せに戻す */
+    min-width: 450px;
+    /*min-width: 100%; !important;*/
+    white-space: normal !important; 
+}
+
+/* ルーム名列のヘッダーセル (<th>) は中央寄せを維持 */
+.stMarkdown table.dataframe th:nth-child(1) {
+    text-align: center !important; 
+    min-width: 450px;
+    /*min-width: 100%; !important;*/
+    white-space: normal !important; 
+}
+
+/* 2列目以降の幅調整（中央寄せはそのまま） */
+.stMarkdown table.dataframe th:nth-child(2), .stMarkdown table.dataframe td:nth-child(2), /* ルームレベル */
+.stMarkdown table.dataframe th:nth-child(4), .stMarkdown table.dataframe td:nth-child(4), /* フォロワー数 */
+.stMarkdown table.dataframe th:nth-child(5), .stMarkdown table.dataframe td:nth-child(5), /* まいにち配信 */
+.stMarkdown table.dataframe th:nth-child(9), .stMarkdown table.dataframe td:nth-child(9) { /* ポイント */
+    width: 10%; 
+}
+
+/* 中央寄せを維持しつつ幅調整 (ランク、公式 or フリー、ルームID、順位、レベル) */
+.stMarkdown table.dataframe th:nth-child(3), .stMarkdown table.dataframe td:nth-child(3), /* ランク */
+.stMarkdown table.dataframe th:nth-child(6), .stMarkdown table.dataframe td:nth-child(6), /* 公式 or フリー */
+.stMarkdown table.dataframe th:nth-child(7), .stMarkdown table.dataframe td:nth-child(7), /* ルームID */
+.stMarkdown table.dataframe th:nth-child(8), .stMarkdown table.dataframe td:nth-child(8), /* 順位 */
+.stMarkdown table.dataframe th:nth-child(10), .stMarkdown table.dataframe td:nth-child(10) { /* レベル (最終列) */
+    width: 8%;
+}
+
+/* ホバーエフェクトの維持 */
+.stMarkdown table.dataframe tbody tr:hover {
+    background-color: #f7f9fd; 
+}
+
+
+/* ******************************************* */
+/* 🔥 新規追加: ルーム基本情報テーブル専用CSS (既存とクラス名を完全に分離) */
+/* ******************************************* */
+
+/* 基本情報テーブルのラッパー */
+.basic-info-table-wrapper {
+    width: 100%;
+    /*max-width: 1000px;*/ /* イベントテーブルの最大幅に合わせる */
+    margin: 0 auto; /* 中央寄せを適用 */
+    overflow-x: auto;
+}
+
+/* 基本情報テーブル本体 */
+.basic-info-table {
+    border-collapse: collapse;
+    width: 100%; 
+    margin-top: 10px;
+    /*table-layout: fixed;*/ /* レイアウトを固定 */
+}
+
+/* ヘッダーセル (<th>) - デザインを統一 (既存のe8eaf6系を使用) */
+.basic-info-table th {
+    text-align: center !important; 
+    background-color: #e8eaf6; 
+    color: #1a237e; 
+    font-weight: bold;
+    padding: 8px 10px; 
+    border-top: 1px solid #c5cae9; 
+    border-bottom: 1px solid #c5cae9; 
+    white-space: nowrap;
+    width: 12.5%; /* 8項目で均等に分割 */
+}
+
+/* データセル (<td>) - デザインを統一 (既存のf0f0f0系を使用) */
+.basic-info-table td {
+    text-align: center !important; 
+    padding: 6px 10px; 
+    line-height: 1.4;
+    font-size: 25px;
+    border-bottom: 1px solid #f0f0f0;
+    white-space: nowrap;
+    width: 12.5%; /* 8項目で均等に分割 */
+    font-weight: 1000; /* 値を目立たせる */
+}
+
+/* ホバーエフェクトの維持 */
+.basic-info-table tbody tr:hover {
+    background-color: #f7f9fd; 
+}
+
+/* 🔵 上位ランクまで30,000以内 */
+.basic-info-highlight-upper {
+    background-color: #e3f2fd !important;
+    color: #0d47a1;
+}
+
+/* 🟡 下位ランクまで30,000以内 */
+.basic-info-highlight-lower {
+    background-color: #fff9c4 !important;
+    color: #795548;
+}
+
+</style>
+"""
+st.markdown(custom_styles, unsafe_allow_html=True)
+# --- カスタムCSS適用ここまで ---
+
+
 # --- 定数設定 ---
 ROOM_LIST_URL = "https://mksoul-pro.com/showroom/file/room_list.csv"
 ROOM_PROFILE_API = "https://www.showroom-live.com/api/room/profile?room_id={room_id}"
@@ -27,7 +254,7 @@ GENRE_MAP = {
     110: "アナウンサー", 113: "クリエイター", 200: "ライバー",
 }
 
-# --- ユーティリティ関数 ---
+# --- ユーティリティ関数（変更なし） ---
 
 def _safe_get(data, keys, default_value=None):
     """ネストされた辞書から安全に値を取得するヘルパー関数"""
@@ -229,7 +456,7 @@ def get_event_id_from_event_liver_list(room_id):
 
 
 
-# --- イベント情報取得関数群 ---
+# --- イベント情報取得関数群（変更なし） ---
 
 def get_total_entries(event_id):
     """イベント参加者総数を取得する（これはページネーションの必要なし）"""
@@ -429,254 +656,15 @@ def get_event_participants_info(event_id, target_room_id, limit=10):
 def display_room_status(profile_data, input_room_id, display_container):
     """取得したルームプロフィールデータとイベントデータを表示する"""
     
-    # ここに表示ロジックを移動。display_container にコンテンツを書き込む
-
     # データを安全に取得
     room_name = _safe_get(profile_data, ["room_name"], "取得失敗")
-    room_level = _safe_get(profile_data, ["room_level"], "-") # これはプロフィールのルームレベル
-    show_rank = _safe_get(profile_data, ["show_rank_subdivided"], "-")
-    next_score = _safe_get(profile_data, ["next_score"], "-")
-    prev_score = _safe_get(profile_data, ["prev_score"], "-")
-    follower_num = _safe_get(profile_data, ["follower_num"], "-")
-    live_continuous_days = _safe_get(profile_data, ["live_continuous_days"], "-")
     is_official = _safe_get(profile_data, ["is_official"], None)
-    genre_id = _safe_get(profile_data, ["genre_id"], None)
-    event = _safe_get(profile_data, ["event"], {})
 
     # 加工・整形
     official_status = "公式" if is_official is True else "フリー" if is_official is False else "-"
-    genre_name = GENRE_MAP.get(genre_id, f"その他 ({genre_id})" if genre_id else "-")
     
     room_url = f"https://www.showroom-live.com/room/profile?room_id={input_room_id}"
     
-    
-    # --- 💡 カスタムCSSの定義（既存と新規の分離） ---
-    # CSSはページ全体に適用されるため、display_containerの外でst.markdownで一度実行しても良いが、
-    # ここでは確実にコンテナに表示するために、MarkdownでHTML内に含めて実行する。
-    custom_styles = """
-    <style>
-    /* ... (CSS定義は省略せずに元のコードからすべて保持) ... */
-    /* 全体のフォント統一と余白調整 */
-    h3 { 
-        margin-top: 20px; 
-        padding-top: 10px; 
-        border-bottom: none; 
-    }
-
-    h4.midashi-1 { 
-        padding: 0.5rem 0px 0.5rem;
-    }
-
-    /* タイトル領域のスタイル */
-    .room-title-container {
-        padding: 15px 20px;
-        margin-bottom: 20px;
-        border-radius: 8px;
-        background-color: #f0f2f6; 
-        border: 1px solid #e6e6e6;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        display: flex;
-        align-items: center;
-    }
-    .room-title-container h1 {
-        margin: 0;
-        padding: 0;
-        line-height: 1.2;
-        font-size: 28px; 
-    }
-    .room-title-container .title-icon {
-        font-size: 30px; 
-        margin-right: 15px;
-        color: #ff4b4b; 
-    }
-    .room-title-container a {
-        text-decoration: none; 
-        color: #1c1c1c; 
-    }
-    
-    /* 🚀 ルーム基本情報のカスタムメトリック用スタイル (元のコードから維持) */
-    .custom-metric-container {
-        margin-bottom: 15px; 
-        padding: 5px 0;
-    }
-    .metric-label {
-        font-size: 14px; 
-        color: #666; 
-        font-weight: 600;
-        margin-bottom: 5px;
-        display: block; 
-    }
-    .metric-value {
-        font-size: 24px !important; 
-        font-weight: bold;
-        line-height: 1.1;
-        color: #1c1c1c;
-    }
-    
-    /* st.metric の値を強制的に揃える (イベント情報セクション用) (元のコードから維持) */
-    .stMetric label {
-        font-size: 14px; 
-        color: #666; 
-        font-weight: 600;
-        margin-bottom: 5px;
-        display: block; 
-    }
-    .stMetric > div > div:nth-child(2) > div {
-        font-size: 24px !important; 
-        font-weight: bold;
-    }
-    
-    /* HTMLテーブルのスタイル (既存のイベント上位10ルーム用) */
-    .stHtml .dataframe {
-        border-collapse: collapse;
-        margin-top: 10px; 
-        width: 100%; 
-        /*max-width: 1000px;*/
-        min-width: 800px; 
-    }
-    
-    /* 中央寄せラッパー (テーブル全体を中央に配置) (既存のイベント上位10ルーム用) */
-    .center-table-wrapper {
-        /*display: flex;*/ /* 既存のコメントアウトを維持（一切変更しない） */
-        justify-content: center; 
-        width: 100%;
-        overflow-x: auto;
-    }
-
-    /*
-    🔥🔥 イベントテーブル用CSS (既存コード): すべての th と td の text-align をセンターに設定し、優先度を最大化
-    */
-    
-    /* ヘッダーセル (<th>) を強制的に中央寄せ */
-    .stMarkdown table.dataframe th {
-        text-align: center !important; 
-        background-color: #e8eaf6; 
-        color: #1a237e; 
-        font-weight: bold;
-        padding: 8px 10px; 
-        /*font-size: 14px;*/
-        border-top: 1px solid #c5cae9; 
-        border-bottom: 1px solid #c5cae9; 
-        white-space: nowrap;
-    }
-    
-    /* データセル (<td>) を強制的に中央寄せ */
-    .stMarkdown table.dataframe td {
-        text-align: center !important; 
-        padding: 6px 10px; 
-        /*font-size: 13px;*/
-        line-height: 1.4;
-        border-bottom: 1px solid #f0f0f0;
-        white-space: nowrap; 
-    }
-    
-    /* ルーム名列のデータセル (<td>) のみ、テキストを左寄せに戻す（自然な表示のため） */
-    /* 1列目 (ルーム名) のセルをターゲット */
-    .stMarkdown table.dataframe td:nth-child(1) {
-        text-align: left !important; /* ルーム名のみ左寄せに戻す */
-        min-width: 450px;
-        /*min-width: 100%; !important;*/
-        white-space: normal !important; 
-    }
-
-    /* ルーム名列のヘッダーセル (<th>) は中央寄せを維持 */
-    .stMarkdown table.dataframe th:nth-child(1) {
-        text-align: center !important; 
-        min-width: 450px;
-        /*min-width: 100%; !important;*/
-        white-space: normal !important; 
-    }
-
-    /* 2列目以降の幅調整（中央寄せはそのまま） */
-    .stMarkdown table.dataframe th:nth-child(2), .stMarkdown table.dataframe td:nth-child(2), /* ルームレベル */
-    .stMarkdown table.dataframe th:nth-child(4), .stMarkdown table.dataframe td:nth-child(4), /* フォロワー数 */
-    .stMarkdown table.dataframe th:nth-child(5), .stMarkdown table.dataframe td:nth-child(5), /* まいにち配信 */
-    .stMarkdown table.dataframe th:nth-child(9), .stMarkdown table.dataframe td:nth-child(9) { /* ポイント */
-        width: 10%; 
-    }
-
-    /* 中央寄せを維持しつつ幅調整 (ランク、公式 or フリー、ルームID、順位、レベル) */
-    .stMarkdown table.dataframe th:nth-child(3), .stMarkdown table.dataframe td:nth-child(3), /* ランク */
-    .stMarkdown table.dataframe th:nth-child(6), .stMarkdown table.dataframe td:nth-child(6), /* 公式 or フリー */
-    .stMarkdown table.dataframe th:nth-child(7), .stMarkdown table.dataframe td:nth-child(7), /* ルームID */
-    .stMarkdown table.dataframe th:nth-child(8), .stMarkdown table.dataframe td:nth-child(8), /* 順位 */
-    .stMarkdown table.dataframe th:nth-child(10), .stMarkdown table.dataframe td:nth-child(10) { /* レベル (最終列) */
-        width: 8%;
-    }
-    
-    /* ホバーエフェクトの維持 */
-    .stMarkdown table.dataframe tbody tr:hover {
-        background-color: #f7f9fd; 
-    }
-    
-    
-    /* ******************************************* */
-    /* 🔥 新規追加: ルーム基本情報テーブル専用CSS (既存とクラス名を完全に分離) */
-    /* ******************************************* */
-
-    /* 基本情報テーブルのラッパー */
-    .basic-info-table-wrapper {
-        width: 100%;
-        /*max-width: 1000px;*/ /* イベントテーブルの最大幅に合わせる */
-        margin: 0 auto; /* 中央寄せを適用 */
-        overflow-x: auto;
-    }
-    
-    /* 基本情報テーブル本体 */
-    .basic-info-table {
-        border-collapse: collapse;
-        width: 100%; 
-        margin-top: 10px;
-        /*table-layout: fixed;*/ /* レイアウトを固定 */
-    }
-
-    /* ヘッダーセル (<th>) - デザインを統一 (既存のe8eaf6系を使用) */
-    .basic-info-table th {
-        text-align: center !important; 
-        background-color: #e8eaf6; 
-        color: #1a237e; 
-        font-weight: bold;
-        padding: 8px 10px; 
-        border-top: 1px solid #c5cae9; 
-        border-bottom: 1px solid #c5cae9; 
-        white-space: nowrap;
-        width: 12.5%; /* 8項目で均等に分割 */
-    }
-    
-    /* データセル (<td>) - デザインを統一 (既存のf0f0f0系を使用) */
-    .basic-info-table td {
-        text-align: center !important; 
-        padding: 6px 10px; 
-        line-height: 1.4;
-        font-size: 25px;
-        border-bottom: 1px solid #f0f0f0;
-        white-space: nowrap;
-        width: 12.5%; /* 8項目で均等に分割 */
-        font-weight: 1000; /* 値を目立たせる */
-    }
-
-    /* ホバーエフェクトの維持 */
-    .basic-info-table tbody tr:hover {
-        background-color: #f7f9fd; 
-    }
-
-    /* 🔵 上位ランクまで30,000以内 */
-    .basic-info-highlight-upper {
-        background-color: #e3f2fd !important;
-        color: #0d47a1;
-    }
-
-    /* 🟡 下位ランクまで30,000以内 */
-    .basic-info-highlight-lower {
-        background-color: #fff9c4 !important;
-        color: #795548;
-    }
-    
-    </style>
-    """
-    display_container.markdown(custom_styles, unsafe_allow_html=True) # カスタムCSSの適用を維持
-    # ---------------------------
-
     now = datetime.datetime.now()
     ym_list = [
         now.strftime("%Y%m"),
@@ -687,7 +675,7 @@ def display_room_status(profile_data, input_room_id, display_container):
     fan_infos = [get_monthly_fan_info(input_room_id, ym) for ym in ym_list]
     fan_display = [f"{f} / {p}" if f != "-" else "-" for f, p in fan_infos]
 
-    avatar_count = count_valid_avatars(profile_data)
+    # avatar_count = count_valid_avatars(profile_data) # 不要なため削除（もし必要なら戻す）
 
     event_id = _safe_get(profile_data, ["event", "event_id"], None)
     created_at, organizer_id = get_room_event_meta(event_id, input_room_id)
@@ -723,15 +711,12 @@ def display_room_status(profile_data, input_room_id, display_container):
     display_container.markdown(html2, unsafe_allow_html=True)
 
 
-# --- メインロジック (認証なしで実行されるように変更) ---
-# st.session_stateの初期化 (認証機能に関連するものは削除)
+# --- メインロジック ---
+# st.session_stateの初期化 
 if 'show_status' not in st.session_state:
     st.session_state.show_status = False
 if 'input_room_id' not in st.session_state:
     st.session_state.input_room_id = ""
-if 'result_container_placeholder' not in st.session_state:
-    # 結果表示用のプレースホルダをセッションステートで保持し、再実行時に利用できるようにする
-    st.session_state.result_container_placeholder = None
 
 
 # 💖 オーガナイザー確認 タイトル表示
@@ -739,7 +724,6 @@ st.markdown(
     "<h1 style='font-size:28px; text-align:left; color:#1f2937;'>💖 オーガナイザー確認</h1>",
     unsafe_allow_html=True
 )
-# st.markdown("##### 🔎 ルームIDの入力")
 
 # ルームID入力フィールド
 input_room_id_current = st.text_input(
@@ -763,28 +747,22 @@ if st.button("確認する"):
     else:
         st.warning("ルームIDを入力してください。")
 
-# 結果表示用のプレースホルダを定義または取得
-if st.session_state.result_container_placeholder is None:
-    # ページが初回ロードされたとき
-    st.session_state.result_container_placeholder = st.empty()
-# 再実行時にも同じコンテナを参照
-result_container = st.session_state.result_container_placeholder
+# 💡 修正点: result_containerを毎回定義（st.empty() をセッションステートで管理しない）
+result_container = st.empty()
     
 # 情報の取得と表示 (ボタンが押されたときのみ実行)
 if st.session_state.show_status and st.session_state.input_room_id:
     
-    # 💡 修正点: スピナーのブロック内で、明示的な result_container.empty() の呼び出しを削除
-    # st.spinner() はブロックを抜けるときにコンテンツを自動でクリアするため。
+    # 💡 修正点: スピナーのブロック内でデータ取得と表示を一括で行う
     with result_container.spinner(f"ルームID {st.session_state.input_room_id} の情報を確認中..."):
         
         # 時間のかかるデータ取得を実行
         room_profile = get_room_profile(st.session_state.input_room_id)
         
-        # result_container.empty() は削除
+        # スピナーがブロックを抜けるときに自動でクリアされる
         
         if room_profile:
             # display_room_status 関数を呼び出し、結果コンテナに描画させる
-            # この呼び出しで result_container の内容がスピナーに上書きされる
             display_room_status(room_profile, st.session_state.input_room_id, result_container)
         else:
             # エラーメッセージを結果コンテナに描画
